@@ -48,30 +48,42 @@ def load_documents():
     )
     documents = loader.load()
     return documents
-
 def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
     """
     Split markdown files by # and ## headings first.
-    Then sub-split large sections with a character splitter to keep them model-friendly.
+    Then sub-split large sections; every resulting chunk starts with: "<h1>: <h2>" (or just "<h1>" if no h2).
     """
     header_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[
             ("#", "h1"),
             ("##", "h2"),
         ],
-        strip_headers=True,  # content won't duplicate the heading line
+        strip_headers=True,  # we'll add our own first line
     )
+
+    def header_prefix(meta: dict) -> str:
+        # prefer direct h1/h2; fallback to parent_section if present
+        ps = meta.get("parent_section", {}) or {}
+        h1 = meta.get("h1") or ps.get("h1") or ""
+        h2 = meta.get("h2") or ps.get("h2") or ""
+        if h1 and h2:
+            return f"{h1}: {h2}"
+        return h1 or h2 or "Fragment"
 
     all_section_docs: list[Document] = []
 
     for doc in documents:
         header_docs = header_splitter.split_text(doc.page_content)
 
-        # retain original file/path metadata
+        # carry over original file/path metadata
         for hd in header_docs:
             meta = dict(hd.metadata or {})
             meta.update({k: v for k, v in doc.metadata.items() if k not in meta})
             hd.metadata = meta
+
+            # prepend "<h1>: <h2>" to this section's content
+            prefix = header_prefix(hd.metadata)
+            hd.page_content = f"{prefix}\n\n{hd.page_content}".strip()
 
         all_section_docs.extend(header_docs)
 
@@ -92,6 +104,7 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
 
         subchunks = section_chunker.split_documents([sec])
         for sc in subchunks:
+            # keep header metadata
             sc.metadata = {
                 **sec.metadata,
                 "parent_section": {
@@ -99,6 +112,13 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
                     "h2": sec.metadata.get("h2"),
                 },
             }
+            # ensure each subchunk also starts with "<h1>: <h2>"
+            prefix = header_prefix(sc.metadata)
+            # If the prefix is already there (because we split the section’s content),
+            # avoid duplicating: check the beginning.
+            content = sc.page_content.lstrip()
+            if not content.startswith(prefix):
+                sc.page_content = f"{prefix}\n\n{content}"
         final_chunks.extend(subchunks)
 
     print(f"Split {len(documents)} files into {len(all_section_docs)} header sections and {len(final_chunks)} final chunks.")
