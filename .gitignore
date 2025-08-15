@@ -1,2 +1,10 @@
-**/.env
-**/chroma/
+
+# general
+node_modules
+.env
+.env.local
+# python
+.venv
+__pycache__/
+# data
+chroma/
