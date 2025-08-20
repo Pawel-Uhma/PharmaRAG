@@ -39,6 +39,17 @@ def test_rag_service():
             print(f"RAG Answer: {response.status_code}")
             print(f"Response: {result['response']}")
             print(f"Sources: {result['sources']}")
+            print(f"Metadata: {result.get('metadata', [])}")
+            
+            # Display metadata in a more readable format
+            if result.get('metadata'):
+                print("\nDetailed Metadata:")
+                for i, meta in enumerate(result['metadata']):
+                    print(f"  Result {i+1}:")
+                    print(f"    H1 (Name): {meta.get('h1', 'N/A')}")
+                    print(f"    H2 (Heading): {meta.get('h2', 'N/A')}")
+                    print(f"    Source: {meta.get('source', 'N/A')}")
+                    print(f"    Relevance Score: {meta.get('relevance_score', 'N/A')}")
         else:
             print(f"Error: {response.status_code} - {response.text}")
             

@@ -1,50 +1,33 @@
-# PharmaRAG Web Application
+# PharmaRAG - Super-Modern RAG Chat UI
 
-A modern, well-structured React/Next.js application for pharmaceutical information assistance using AI.
+A premium, minimal, and fast RAG chatbot with an always-visible Context Inspector built with Next.js 15, React 19, and Tailwind CSS 4.
 
-## 🏗️ Project Structure
+## ✨ Features
 
-```
-src/
-├── app/
-│   ├── globals.css          # Global styles with Tailwind CSS
-│   ├── layout.tsx           # Root layout component
-│   └── page.tsx             # Main page (clean and minimal)
-├── components/               # Reusable UI components
-│   ├── index.ts             # Component exports
-│   ├── Header.tsx           # Application header with branding
-│   ├── ChatContainer.tsx    # Main chat interface container
-│   ├── Message.tsx          # Individual message component
-│   ├── LoadingIndicator.tsx # Loading state indicator
-│   ├── ChatInput.tsx        # Chat input and send button
-│   └── Features.tsx         # Feature showcase section
-├── hooks/                    # Custom React hooks
-│   └── useChat.ts           # Chat state management and API logic
-└── types/                    # TypeScript type definitions
-    └── index.ts             # Application interfaces and types
-```
+### 🎨 **Modern Design System**
+- **Dark mode by default** with light mode toggle
+- **Design tokens** with CSS custom properties
+- **Smooth transitions** and micro-animations (<200ms)
+- **WCAG 2.2 AA** accessible design
+- **Responsive layout** for all screen sizes
 
-## 🎯 Architecture Benefits
+### 🏗️ **3-Pane Layout**
+- **Left Sidebar**: Conversation management with history
+- **Center**: Main chat interface with citation chips
+- **Right Panel**: Context Inspector with multiple tabs
 
-### **Separation of Concerns**
-- **UI Components**: Pure presentation components with no business logic
-- **Custom Hooks**: Business logic and state management separated from UI
-- **Types**: Centralized type definitions for better maintainability
+### 🔍 **Rich Context UX**
+- **Sources Tab**: View document sources with relevance scores
+- **Chunks Tab**: Examine text chunks used for responses
+- **Inspector Tab**: Detailed metadata and analysis
+- **History Tab**: Response metadata and processing info
 
-### **Reusability**
-- Components can be easily reused across different parts of the application
-- Custom hooks can be shared between components
-- Type definitions ensure consistency across the codebase
-
-### **Maintainability**
-- Each component has a single responsibility
-- Easy to locate and modify specific functionality
-- Clear separation between logic and presentation
-
-### **Testing**
-- Components can be tested in isolation
-- Business logic in hooks can be tested separately
-- Clear interfaces make mocking easier
+### 💬 **Enhanced Chat Experience**
+- **Inline citation chips** linking to sources
+- **Conversation management** with titles and history
+- **Optimistic send** for snappy feel
+- **Skeleton loaders** during processing
+- **Real-time updates** with smooth scrolling
 
 ## 🚀 Getting Started
 
@@ -54,91 +37,122 @@ src/
 
 ### Installation
 ```bash
-# Install dependencies
+cd rag_web
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
 ```
 
-## 🎨 Design Features
+### Environment Setup
+Make sure your RAG service is running on `http://localhost:8000` or update the API endpoint in `src/hooks/useChat.ts`.
 
-- **Modern UI**: Glassmorphism effects with backdrop blur
-- **Responsive Design**: Works seamlessly on all device sizes
-- **Tailwind CSS**: Utility-first CSS framework for rapid development
-- **Smooth Animations**: Hover effects and transitions for better UX
-- **Accessibility**: Proper focus states and keyboard navigation
+## 🏗️ Architecture
+
+### Core Components
+- **`ConversationsSidebar`**: Manages chat history and conversations
+- **`ChatContainer`**: Main chat interface with messages
+- **`ContextPanel`**: Right-side context inspector
+- **`Message`**: Enhanced message component with citations
+- **`ChatInput`**: Smart input with character count and validation
+
+### State Management
+- **`useChat`**: Enhanced hook with conversation management
+- **`ThemeContext`**: Dark/light mode state
+- **Local storage**: Theme preference persistence
+
+### Design System
+- **CSS Custom Properties**: Theme variables for consistent styling
+- **Tailwind CSS 4**: Utility-first CSS framework
+- **Custom animations**: Smooth transitions and micro-interactions
+
+## 🎯 Usage
+
+### Starting a Conversation
+1. Click the "+" button in the left sidebar
+2. Type your pharmaceutical question
+3. Press Enter or click Send
+
+### Exploring Context
+1. Click on citation chips `[1]`, `[2]`, etc. in responses
+2. Use the right panel tabs to explore:
+   - **Sources**: Document origins and metadata
+   - **Chunks**: Text segments used for answers
+   - **Inspector**: Detailed analysis
+   - **History**: Processing information
+
+### Managing Conversations
+- **Edit titles**: Click the edit icon on conversation items
+- **Delete conversations**: Use the trash icon
+- **Switch between chats**: Click on any conversation in the sidebar
 
 ## 🔧 Customization
 
-### Adding New Components
-1. Create the component in `src/components/`
-2. Export it from `src/components/index.ts`
-3. Import and use in your pages
+### Theme Colors
+Edit `src/styles/theme.css` to customize the color scheme:
 
-### Adding New Hooks
-1. Create the hook in `src/hooks/`
-2. Follow the naming convention `use[FeatureName]`
-3. Import and use in your components
-
-### Modifying Types
-1. Update interfaces in `src/types/index.ts`
-2. Components and hooks will automatically get the new types
-
-## 📱 Component Usage Examples
-
-```tsx
-// Using the chat hook
-import { useChat } from '../hooks/useChat';
-
-function MyComponent() {
-  const { messages, sendMessage, isLoading } = useChat();
-  // ... component logic
-}
-
-// Using individual components
-import { Header, ChatContainer } from '../components';
-
-function MyPage() {
-  return (
-    <div>
-      <Header />
-      <ChatContainer {...props} />
-    </div>
-  );
+```css
+:root {
+  --bg: #0c0f14;
+  --accent: #8ab4ff;
+  --ring: #7aa2ff;
+  /* ... more variables */
 }
 ```
 
-## 🎯 Best Practices
+### Adding New Context Tabs
+Extend the `ContextPanel` component to add new inspection tabs:
 
-1. **Keep components small and focused**
-2. **Use custom hooks for complex logic**
-3. **Maintain consistent prop interfaces**
-4. **Follow TypeScript best practices**
-5. **Use semantic HTML elements**
-6. **Implement proper error boundaries**
-7. **Optimize for performance with React.memo when needed**
+```tsx
+const tabs = [
+  { id: 'sources', label: 'Sources', icon: '📚' },
+  { id: 'chunks', label: 'Chunks', icon: '🔍' },
+  { id: 'inspector', label: 'Inspector', icon: '🔬' },
+  { id: 'history', label: 'History', icon: '⏱️' },
+  { id: 'custom', label: 'Custom', icon: '✨' }, // Add new tab
+];
+```
 
-## 🔄 State Management
+## 🧪 Development
 
-The application uses React's built-in state management with custom hooks:
-- **useChat**: Manages chat messages, input state, and API calls
-- **Local State**: Component-specific state managed with useState
-- **No External State Libraries**: Keeps the bundle size minimal
+### Available Scripts
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-## 🌟 Future Enhancements
+### Code Style
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code quality and consistency
+- **Prettier**: Automatic code formatting
+- **Component structure**: Functional components with hooks
 
-- [ ] Add dark mode support
-- [ ] Implement message persistence
-- [ ] Add user authentication
-- [ ] Implement real-time updates
-- [ ] Add message search functionality
-- [ ] Implement message reactions
-- [ ] Add file upload support
-- [ ] Implement voice input/output
+## 📱 Responsive Design
+
+The UI automatically adapts to different screen sizes:
+- **Desktop**: Full 3-pane layout
+- **Tablet**: Collapsible sidebars
+- **Mobile**: Stacked layout with navigation
+
+## 🔒 Security
+
+- **Input validation**: Sanitized user inputs
+- **API security**: Secure communication with RAG service
+- **XSS protection**: React's built-in security features
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- **Next.js 15** for the React framework
+- **Tailwind CSS 4** for the design system
+- **React 19** for the UI library
+- **Pharmaceutical community** for domain expertise

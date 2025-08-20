@@ -73,6 +73,7 @@ class RAGRequest(BaseModel):
 class RAGResponse(BaseModel):
     response: str
     sources: List[Optional[str]]
+    metadata: List[dict]  # New field for metadata including h1 and h2
 
 # Middleware to log all requests
 @app.middleware("http")
@@ -133,6 +134,7 @@ def query(query_text: str):
         # Log relevance scores
         for i, (doc, score) in enumerate(results):
             logger.info(f"Result {i+1}: score={score:.4f}, source={doc.metadata.get('source', 'unknown')}")
+            logger.info(f"Result {i+1} metadata: h1='{doc.metadata.get('h1', '')}', h2='{doc.metadata.get('h2', '')}'")
         
         # Check if we have any results and if the best score is reasonable
         has_relevant_results = len(results) > 0 and results[0][1] >= 0.7
@@ -186,11 +188,24 @@ def query(query_text: str):
         # For cases with no relevant results, we don't have sources
         if has_relevant_results:
             sources = [doc.metadata.get("source", None) for doc, _score in results]
+            # Extract metadata including h1 and h2 headers
+            metadata = []
+            for doc, _score in results:
+                doc_metadata = {
+                    "h1": doc.metadata.get("h1", ""),
+                    "h2": doc.metadata.get("h2", ""),
+                    "source": doc.metadata.get("source", ""),
+                    "relevance_score": _score,
+                    "chunk_content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+                }
+                metadata.append(doc_metadata)
         else:
             sources = []
+            metadata = []
         logger.info(f"Sources: {sources}")
+        logger.info(f"Metadata: {metadata}")
         
-        return response_text, sources
+        return response_text, sources, metadata
         
     except Exception as e:
         logger.error(f"Error in query function: {str(e)}", exc_info=True)
@@ -204,9 +219,9 @@ async def get_rag_answer(request: RAGRequest):
     logger.info(f"Received RAG request: {request.question}")
     
     try:
-        response_text, sources = query(request.question)
+        response_text, sources, metadata = query(request.question)
         logger.info("RAG query completed successfully")
-        return RAGResponse(response=response_text, sources=sources)
+        return RAGResponse(response=response_text, sources=sources, metadata=metadata)
     except HTTPException:
         logger.warning("HTTPException raised, re-raising")
         raise
