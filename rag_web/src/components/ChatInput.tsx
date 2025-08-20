@@ -1,50 +1,93 @@
+'use client';
+
+import React, { useState } from 'react';
+
 interface ChatInputProps {
-  inputText: string;
-  setInputText: (text: string) => void;
+  value: string;
+  onChange: (value: string) => void;
   onSend: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
-  isLoading: boolean;
+  disabled?: boolean;
+  placeholder?: string;
 }
 
-export default function ChatInput({ 
-  inputText, 
-  setInputText, 
-  onSend, 
-  onKeyPress, 
-  isLoading 
-}: ChatInputProps) {
+export const ChatInput: React.FC<ChatInputProps> = ({
+  value,
+  onChange,
+  onSend,
+  onKeyPress,
+  disabled = false,
+  placeholder = "Type your message..."
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleSubmit = () => {
+    if (value.trim() && !disabled) {
+      onSend();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    } else {
+      onKeyPress(e);
+    }
+  };
+
   return (
-    <div className="border-t border-gray-100/50 bg-white/50 backdrop-blur-sm p-6">
-      <div className="flex space-x-4">
+    <div className="relative">
+      <div className={`relative flex items-end space-x-3 p-3 rounded-theme border transition-all duration-200 ${
+        isFocused
+          ? 'border-accent/50 bg-elevated shadow-theme'
+          : 'border-ring/20 bg-panel hover:border-ring/30'
+      }`}>
+        {/* Textarea */}
         <div className="flex-1 relative">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={onKeyPress}
-            placeholder="Ask me about medications, side effects, or pharmaceutical information..."
-            className="w-full bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl px-6 py-4 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 font-medium shadow-sm"
-            disabled={isLoading}
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            disabled={disabled}
+            placeholder={placeholder}
+            rows={1}
+            className="w-full resize-none bg-transparent text-primary placeholder-muted border-none outline-none text-sm leading-relaxed pr-12"
+            style={{
+              minHeight: '24px',
+              maxHeight: '120px'
+            }}
           />
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
+          
+          {/* Character count */}
+          <div className="absolute bottom-0 right-0 text-xs text-muted">
+            {value.length}/4000
           </div>
         </div>
+
+        {/* Send Button */}
         <button
-          onClick={onSend}
-          disabled={!inputText.trim() || isLoading}
-          className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          onClick={handleSubmit}
+          disabled={!value.trim() || disabled}
+          className={`flex-shrink-0 p-2 rounded-theme transition-all duration-200 ${
+            value.trim() && !disabled
+              ? 'bg-accent text-white hover:bg-accent/90 hover:scale-105 shadow-theme'
+              : 'bg-panel text-muted cursor-not-allowed'
+          }`}
+          title="Send message"
         >
-          <div className="flex items-center space-x-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <span>Send</span>
-          </div>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
         </button>
+      </div>
+
+      {/* Helper text */}
+      <div className="mt-2 text-xs text-muted text-center">
+        Press Enter to send, Shift+Enter for new line
       </div>
     </div>
   );
-}
+};
