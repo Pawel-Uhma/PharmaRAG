@@ -17,7 +17,7 @@ export const LoadingIndicator: React.FC = () => {
           />
         ))}
       </div>
-      <span className="text-sm text-muted">Thinking...</span>
+      <span className="text-sm text-muted">Myślę...</span>
     </div>
   );
 };

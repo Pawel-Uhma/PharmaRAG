@@ -10,23 +10,16 @@ export const useChat = () => {
     activeTab: 'sources'
   });
 
-  // Initialize with a default conversation
+  // Initialize with a default conversation (empty)
   useEffect(() => {
     const defaultConversation: Conversation = {
       id: 'default',
       title: 'New Conversation',
-      messages: [
-        {
-          id: '1',
-          text: 'Hello! I\'m your pharmaceutical information assistant. Ask me anything about medications, their uses, side effects, or other pharmaceutical topics.',
-          isUser: false,
-          timestamp: new Date()
-        }
-      ],
+      messages: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       metadata: {
-        totalMessages: 1
+        totalMessages: 0
       }
     };
 
@@ -89,7 +82,7 @@ export const useChat = () => {
     ));
 
     // Update conversation title if it's the first user message
-    if (messages.length === 1) { // Only welcome message exists
+    if (messages.length === 0) { // No messages exist yet
       updateConversationTitle(currentConversationId, inputText.slice(0, 50));
     }
 

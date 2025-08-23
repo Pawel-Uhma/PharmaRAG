@@ -18,7 +18,7 @@ try:
 except Exception:
     from langchain_text_splitters import MarkdownHeaderTextSplitter  # pip install langchain-text-splitters
 
-env_path = Path(__file__).resolve().parent.parent / '.env'
+env_path = Path(__file__).resolve().parent / '.env'
 load_dotenv(dotenv_path=env_path)
 API_KEY = os.getenv('API_KEY')
 openai.api_key = API_KEY
@@ -52,6 +52,7 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
     """
     Split markdown files by # and ## headings first.
     Then sub-split large sections; every resulting chunk starts with: "<h1>: <h2>" (or just "<h1>" if no h2).
+    Skip the "Źródło" section and extract its URL as metadata.
     """
     header_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[
@@ -74,18 +75,39 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
 
     for doc in documents:
         header_docs = header_splitter.split_text(doc.page_content)
-
-        # carry over original file/path metadata
+        
+        # Extract source URL from "Źródło" section
+        source_url = ""
         for hd in header_docs:
+            if hd.metadata.get("h2") == "Źródło":
+                # Extract URL from the content
+                content = hd.page_content.strip()
+                # Look for URL pattern
+                url_match = re.search(r'https?://[^\s]+', content)
+                if url_match:
+                    source_url = url_match.group(0)
+                break
+
+        # carry over original file/path metadata and add source URL
+        for hd in header_docs:
+            # Skip the "Źródło" section entirely
+            if hd.metadata.get("h2") == "Źródło":
+                continue
+                
             meta = dict(hd.metadata or {})
             meta.update({k: v for k, v in doc.metadata.items() if k not in meta})
+            
+            # Add source URL to metadata if we found one
+            if source_url:
+                meta["source"] = source_url
+            
             hd.metadata = meta
 
             # prepend "<h1>: <h2>" to this section's content
             prefix = header_prefix(hd.metadata)
             hd.page_content = f"{prefix}\n\n{hd.page_content}".strip()
 
-        all_section_docs.extend(header_docs)
+        all_section_docs.extend([hd for hd in header_docs if hd.metadata.get("h2") != "Źródło"])
 
     # Optional: sub-split big sections
     section_chunker = RecursiveCharacterTextSplitter(
@@ -104,17 +126,15 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
 
         subchunks = section_chunker.split_documents([sec])
         for sc in subchunks:
-            # keep header metadata
+            # keep header metadata but flatten nested structures
             sc.metadata = {
                 **sec.metadata,
-                "parent_section": {
-                    "h1": sec.metadata.get("h1"),
-                    "h2": sec.metadata.get("h2"),
-                },
+                "parent_h1": sec.metadata.get("h1", ""),
+                "parent_h2": sec.metadata.get("h2", ""),
             }
             # ensure each subchunk also starts with "<h1>: <h2>"
             prefix = header_prefix(sc.metadata)
-            # If the prefix is already there (because we split the section’s content),
+            # If the prefix is already there (because we split the section's content),
             # avoid duplicating: check the beginning.
             content = sc.page_content.lstrip()
             if not content.startswith(prefix):
@@ -132,18 +152,46 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
 
     return final_chunks
 
+def estimate_tokens(text: str) -> int:
+    """
+    Rough estimate of tokens (1 token ≈ 4 characters for English text)
+    """
+    return len(text) // 4
+
 def save_to_chroma(chunks: list[Document]):
     # Clear out the database first (fresh build)
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
+    
+    # Initialize embeddings and Chroma
+    embeddings = OpenAIEmbeddings(api_key=API_KEY)
+    
+    # Process chunks in batches to avoid token limit
+    batch_size = 100  # Process 100 chunks at a time
+    total_chunks = len(chunks)
+    
+    print(f"Processing {total_chunks} chunks in batches of {batch_size}...")
+    
+    # Initialize Chroma with first batch
+    first_batch = chunks[:batch_size]
     db = Chroma.from_documents(
-        chunks,
-        OpenAIEmbeddings(api_key=API_KEY),   # ensure this matches your query-time embedding
+        first_batch,
+        embeddings,
         persist_directory=CHROMA_PATH,
     )
+    
+    # Process remaining chunks in batches
+    for i in range(batch_size, total_chunks, batch_size):
+        end_idx = min(i + batch_size, total_chunks)
+        batch = chunks[i:end_idx]
+        
+        print(f"Processing batch {i//batch_size + 1}/{(total_chunks + batch_size - 1)//batch_size} ({len(batch)} chunks)")
+        
+        # Add documents to existing collection
+        db.add_documents(batch)
+    
     db.persist()
-    print(f"Saved {len(chunks)} chunks to {CHROMA_PATH}.")
+    print(f"Saved {total_chunks} chunks to {CHROMA_PATH}.")
 
 if __name__ == "__main__":
     main()

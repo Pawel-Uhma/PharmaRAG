@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Message as MessageType, Source } from '../types';
 import { Message } from './Message';
 import { ChatInput } from './ChatInput';
 import { LoadingIndicator } from './LoadingIndicator';
+import { SuggestedQuestions } from './SuggestedQuestions';
+import { getRandomQuestions } from '../utils/suggestedQuestions';
 
 interface ChatContainerProps {
   messages: MessageType[];
@@ -26,6 +28,26 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   onSourceClick
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+
+  // Initialize suggested questions when component mounts
+  useEffect(() => {
+    if (messages.length === 0) {
+      const questions = getRandomQuestions(3);
+      setSuggestedQuestions(questions);
+    }
+  }, [messages.length]);
+
+  const handleQuestionClick = (question: string) => {
+    // Clear suggested questions when a question is clicked
+    setSuggestedQuestions([]);
+    // Set the input text and send immediately
+    setInputText(question);
+    // Small delay to ensure state update, then send
+    setTimeout(() => {
+      onSend();
+    }, 50);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,19 +58,21 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   }, [messages]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-primary">
+    <div className="flex-1 flex flex-col min-h-0 bg-primary">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-muted">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-panel border border-ring/20 flex items-center justify-center">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-theme bg-accent-light flex items-center justify-center shadow-theme">
+                <img 
+                  src="/bot.png" 
+                  alt="Asystent AI" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
               </div>
-              <h3 className="text-lg font-medium text-primary mb-2">Start a conversation</h3>
-              <p className="text-muted">Ask me anything about pharmaceuticals, medications, or health topics.</p>
+              <h3 className="text-lg font-medium text-primary mb-2">Rozpocznij rozmowę</h3>
+              <p className="text-muted">Zadaj mi pytanie o leki.</p>
             </div>
           </div>
         ) : (
@@ -63,12 +87,14 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-panel border border-ring/20 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-theme bg-accent-light flex items-center justify-center shadow-theme">
+                    <img 
+                      src="/bot.png" 
+                      alt="Asystent AI" 
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
                   </div>
-                  <div className="bg-panel border border-ring/20 rounded-theme p-4 shadow-theme">
+                  <div className="bg-panel border border-accent-light rounded-theme p-4 shadow-theme">
                     <LoadingIndicator />
                   </div>
                 </div>
@@ -80,14 +106,23 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-ring/20 bg-panel p-4">
+      <div className="flex-shrink-0 border-t border-accent-light bg-panel p-4 shadow-theme">
+
+        
+        {/* Show suggested questions only when there are no messages */}
+        {messages.length === 0 && (
+          <SuggestedQuestions
+            questions={suggestedQuestions}
+            onQuestionClick={handleQuestionClick}
+          />
+        )}
         <ChatInput
           value={inputText}
           onChange={setInputText}
           onSend={onSend}
           onKeyPress={onKeyPress}
           disabled={isLoading}
-          placeholder="Ask me anything about pharmaceuticals..."
+          placeholder="Zadaj mi pytanie o farmaceutyki..."
         />
       </div>
     </div>

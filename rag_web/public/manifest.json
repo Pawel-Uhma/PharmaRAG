@@ -1,0 +1,22 @@
+{
+  "name": "PharmaRAG - AI Pharmaceutical Assistant",
+  "short_name": "PharmaRAG",
+  "description": "AI-powered pharmaceutical information and medication assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/bot.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/bot.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+

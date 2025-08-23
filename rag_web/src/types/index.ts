@@ -70,7 +70,7 @@ export interface Conversation {
 }
 
 export interface ContextPanelState {
-  activeTab: 'sources' | 'chunks' | 'inspector' | 'history';
+  activeTab: 'sources' | 'history';
   selectedSource?: Source;
-  selectedChunk?: Chunk;
+  chunkToHighlight?: string;
 }

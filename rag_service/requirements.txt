@@ -7,3 +7,5 @@ python-dotenv==1.0.0
 pydantic==2.5.0
 requests==2.32.3
 beautifulsoup4==4.12.3
+# Additional dependencies for optimization features
+statistics

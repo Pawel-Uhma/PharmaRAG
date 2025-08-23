@@ -313,6 +313,35 @@ def render_unique_list(items: List[str]) -> str:
     return "\n".join(out) + ("\n\n" if out else "")
 
 
+def extract_drug_description(container: Tag) -> str:
+    """Extract drug description from h3 elements that appear after the h1 title."""
+    description_parts = []
+    
+    # Find all h3 elements in the drug description container
+    h3_elements = container.find_all("h3")
+    
+    for h3 in h3_elements:
+        # Get the text content, handling nested elements like <p> and <span>
+        text_content = ""
+        
+        # Check if h3 contains a <p> element
+        p_element = h3.find("p")
+        if p_element:
+            # Extract text from <p> element, handling <br> tags
+            text_content = p_element.get_text(separator=" ", strip=True)
+        else:
+            # Extract text directly from h3, handling <span> and <a> elements
+            text_content = h3.get_text(separator=" ", strip=True)
+        
+        if text_content:
+            # Clean up the text
+            text_content = clean_text(text_content)
+            if text_content:
+                description_parts.append(text_content)
+    
+    return "\n".join(description_parts)
+
+
 def convert_article_to_markdown(soup: BeautifulSoup, source_url: str) -> Tuple[str, str]:
     container = extract_main_container(soup)
 
@@ -326,7 +355,14 @@ def convert_article_to_markdown(soup: BeautifulSoup, source_url: str) -> Tuple[s
         first_name = r0.get("nazwa preparatu") or r0.get("nazwa") or ""
     title = h1_title(soup, first_name)
 
-    md_parts: List[str] = [f"# {title}\n\n", f"Źródło: {source_url}\n\n"]
+    md_parts: List[str] = [f"# {title}\n\n"]
+    
+    # Extract drug description from h3 elements after the h1
+    drug_description = extract_drug_description(container)
+    if drug_description:
+        md_parts.append(drug_description + "\n\n")
+    
+    md_parts.append(f"## Źródło\n{source_url}\n\n")
 
     # ## Zestawienie preparatów -> full variations table
     price_table_md = render_price_table(table)
@@ -334,63 +370,55 @@ def convert_article_to_markdown(soup: BeautifulSoup, source_url: str) -> Tuple[s
         md_parts.append("## Zestawienie preparatów\n\n")
         md_parts.append(price_table_md)
 
-    # ## Postać -> unique list of "Postać; dawka; opakowanie"
-    if table.get("rows"):
-        postac_list = [r.get("postać; dawka; opakowanie") or r.get("postac; dawka; opakowanie") or r.get("postać") or r.get("postac") or ""
-                       for r in table["rows"]]
-        postac_md = render_unique_list([p for p in postac_list if p])
-        if postac_md.strip():
-            md_parts.append("## Postać\n\n")
-            md_parts.append(postac_md)
 
-    # ## Refundacja -> per-variant bullets (variant → refund price)
-    if table.get("rows"):
-        refund_lines = []
-        for r in table["rows"]:
-            variant = r.get("postać; dawka; opakowanie") or r.get("postac; dawka; opakowanie") or r.get("postać") or r.get("postac") or ""
-            refund = r.get("cena po refundacji") or r.get("refundacja") or ""
-            if refund:
-                label = variant or (r.get("nazwa preparatu") or "")
-                refund_lines.append(f"- {label}: {refund}")
-        if refund_lines:
-            md_parts.append("## Refundacja\n\n")
-            md_parts.append("\n".join(refund_lines) + "\n\n")
+
+
 
     # Other content sections: each <h2> + nearest .item-content
+    h2_count = 0
     for h2 in container.find_all("h2"):
         heading = clean_text(h2.get_text(" ", strip=True))
-        # skip the "Inne preparaty..." here; handle later
-        if re.search(r"inne\s+preparaty", heading, flags=re.I):
+        # skip the "Inne preparaty..." here; handle later - but be specific to avoid matching other sections
+        if re.search(r"^inne\s+preparaty.*zawierające", heading, flags=re.I):
             continue
 
+        h2_count += 1
         # find nearest item-content following this h2
         content_div = None
-        nxt = h2
-        for _ in range(6):
-            nxt = nxt.next_sibling
-            if not nxt:
-                break
-            if isinstance(nxt, Tag):
-                if nxt.name == "div" and "item-content" in (nxt.get("class") or []):
-                    content_div = nxt
-                    break
-                inner = nxt.select_one("div.item-content")
-                if inner:
-                    content_div = inner
-                    break
-        if not content_div:
+        
+        # First check if the next sibling is a div with class item-content (inline case)
+        next_sibling = h2.find_next_sibling()
+        if next_sibling and next_sibling.name == "div" and "item-content" in (next_sibling.get("class") or []):
+            content_div = next_sibling
+        else:
+            # Look for the next div with class item-content that comes after this h2
             content_div = h2.find_next("div", class_="item-content")
+            
+            # If we found one, check if it's actually associated with this h2
+            # by making sure there are no other h2 elements between this h2 and the content div
+            if content_div:
+                # Check if there are any h2 elements between this h2 and the content div
+                current = h2.next_sibling
+                while current and current != content_div:
+                    if current.name == "h2":
+                        # Found another h2 before the content div, so this content isn't for us
+                        content_div = None
+                        break
+                    current = current.next_sibling
 
         body = clean_text(content_div.get_text("\n", strip=True)) if content_div else ""
         if heading:
             md_parts.append(f"## {heading}\n\n")
             if body:
                 md_parts.append(body + "\n\n")
+    
+
 
     # Inne preparaty … (links)
     other_h2 = None
     for h2 in container.find_all("h2"):
-        if re.search(r"inne\s+preparaty", h2.get_text(" ", strip=True), flags=re.I):
+        h2_text = h2.get_text(" ", strip=True)
+        if re.search(r"^inne\s+preparaty.*zawierające", h2_text, flags=re.I):
             other_h2 = h2
             break
     if other_h2:
@@ -403,7 +431,8 @@ def convert_article_to_markdown(soup: BeautifulSoup, source_url: str) -> Tuple[s
                 if txt and url:
                     links.append(f"- [{txt}]({url})")
         if links:
-            md_parts.append("## " + clean_text(other_h2.get_text(" ", strip=True)) + "\n\n")
+            heading = clean_text(other_h2.get_text(" ", strip=True))
+            md_parts.append("## " + heading + "\n\n")
             md_parts.append("\n".join(links) + "\n\n")
 
     markdown = "".join(md_parts).strip() + "\n"

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Conversation } from '../types';
-import { useTheme } from '../contexts/ThemeContext';
 
 interface ConversationsSidebarProps {
   conversations: Conversation[];
@@ -21,29 +20,27 @@ export const ConversationsSidebar: React.FC<ConversationsSidebarProps> = ({
   onDeleteConversation,
   onUpdateTitle
 }) => {
-  const { isDark } = useTheme();
-
   const formatDate = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString();
+    if (days === 0) return 'Dzisiaj';
+    if (days === 1) return 'Wczoraj';
+    if (days < 7) return `${days} dni temu`;
+    return date.toLocaleDateString('pl-PL');
   };
 
   return (
-    <div className="w-80 h-full bg-panel border-r border-ring/20 flex flex-col">
+    <div className="w-80 h-full bg-panel border-r border-accent-light flex flex-col shadow-theme">
       {/* Header */}
-      <div className="p-4 border-b border-ring/20">
+      <div className="p-4 border-b border-accent-light">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-primary">Conversations</h2>
+          <h2 className="text-lg font-semibold text-accent">Rozmowy</h2>
           <button
             onClick={onCreateNew}
-            className="p-2 rounded-theme bg-accent/10 hover:bg-accent/20 text-accent transition-colors duration-200"
-            title="New Conversation"
+            className="p-2 rounded-theme bg-accent hover:bg-accent-hover text-white transition-colors duration-200 shadow-theme"
+            title="Nowa rozmowa"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -56,12 +53,12 @@ export const ConversationsSidebar: React.FC<ConversationsSidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-2">
         {conversations.length === 0 ? (
           <div className="text-center py-8 text-muted">
-            <p>No conversations yet</p>
+            <p>Brak rozmów</p>
             <button
               onClick={onCreateNew}
-              className="mt-2 text-accent hover:text-accent/80 underline"
+              className="mt-2 text-accent hover:text-accent-hover underline"
             >
-              Start your first conversation
+              Rozpocznij pierwszą rozmowę
             </button>
           </div>
         ) : (
@@ -124,8 +121,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     <div
       className={`group relative p-3 rounded-theme cursor-pointer transition-all duration-200 ${
         isActive
-          ? 'bg-accent/20 border border-accent/30 text-accent'
-          : 'hover:bg-elevated border border-transparent hover:border-ring/20'
+          ? 'bg-accent text-white shadow-theme'
+          : 'hover:bg-accent-light hover:border-accent border border-transparent'
       }`}
       onClick={onSelect}
     >
@@ -138,16 +135,22 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               onChange={(e) => setEditTitle(e.target.value)}
               onKeyDown={handleKeyPress}
               onBlur={handleTitleSubmit}
-              className="w-full bg-transparent text-primary border-none outline-none text-sm font-medium"
+              className={`w-full bg-transparent border-none outline-none text-sm font-medium ${
+                isActive ? 'text-white placeholder-white/80' : 'text-primary'
+              }`}
               autoFocus
             />
           ) : (
-            <h3 className="text-sm font-medium text-primary truncate">
+            <h3 className={`text-sm font-medium truncate ${
+              isActive ? 'text-white' : 'text-primary'
+            }`}>
               {conversation.title}
             </h3>
           )}
-          <p className="text-xs text-muted mt-1">
-            {conversation.metadata.totalMessages} messages • {formatDate(conversation.updatedAt)}
+          <p className={`text-xs mt-1 ${
+            isActive ? 'text-white/80' : 'text-accent/80'
+          }`}>
+            {conversation.metadata.totalMessages} wiadomości • {formatDate(conversation.updatedAt)}
           </p>
         </div>
         
@@ -157,8 +160,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="p-1 rounded hover:bg-elevated text-muted hover:text-primary transition-colors"
-            title="Edit title"
+            className={`p-1 rounded hover:bg-white/20 text-white/80 hover:text-white transition-colors ${
+              isActive ? 'text-white/80' : 'text-accent hover:text-accent-hover'
+            }`}
+            title="Edytuj tytuł"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -169,8 +174,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
               e.stopPropagation();
               onDelete();
             }}
-            className="p-1 rounded hover:bg-danger/10 hover:text-danger transition-colors"
-            title="Delete conversation"
+            className={`p-1 rounded hover:bg-white/20 hover:text-white transition-colors ${
+              isActive ? 'text-white/80' : 'text-accent hover:text-danger'
+            }`}
+            title="Usuń rozmowę"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
