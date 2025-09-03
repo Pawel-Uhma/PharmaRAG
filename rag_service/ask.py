@@ -73,12 +73,6 @@ class OpenAIService:
             results = self.db.similarity_search_with_relevance_scores(query_text, k=3)
             logger.info(f"Found {len(results)} results")
             
-            # Log relevance scores and metadata
-            for i, (doc, score) in enumerate(results):
-                logger.info(f"Result {i+1}: score={score:.4f}")
-                logger.info(f"Result {i+1} metadata: {doc.metadata}")
-                logger.info(f"Result {i+1} source: {doc.metadata.get('source', 'unknown')}")
-            
             # Check if we have any results and if the best score is reasonable
             has_relevant_results = len(results) > 0 and results[0][1] >= 0.7
             
@@ -89,7 +83,6 @@ class OpenAIService:
                 # Create fallback context
                 context_text = "Nie znaleziono żadnych istotnych informacji w bazie danych na temat tego zapytania. Baza danych zawiera informacje o lekach i farmacji, ale to konkretne zapytanie nie pasuje do dostępnych danych."
                 logger.info("Using fallback context for no relevant results")
-                logger.info(f"Fallback context: {context_text}")
             else:
                 context_text = self._format_context(results)
                 logger.info(f"Context length: {len(context_text)} characters")
@@ -107,7 +100,6 @@ class OpenAIService:
                 metadata = []
                 
             logger.info(f"Sources: {sources}")
-            logger.info(f"Metadata: {metadata}")
             
             return response_text, sources, metadata
             
@@ -151,7 +143,6 @@ class OpenAIService:
                 unique_sources.append(source)
                 seen.add(source)
         
-        logger.info(f"Extracted sources: {unique_sources}")
         return unique_sources
     
     def _format_context(self, results: List[Tuple]) -> str:
@@ -186,9 +177,8 @@ class OpenAIService:
         prompt = prompt_template.format(context=context_text, question=query_text)
         logger.info(f"Prompt length: {len(prompt)} characters")
         
-        # Log a truncated version of the prompt for debugging
-        prompt_preview = prompt[:500] + "..." if len(prompt) > 500 else prompt
-        logger.info(f"Prompt preview: {prompt_preview}")
+        # Log the complete prompt sent to OpenAI
+        logger.info(f"Complete prompt sent to OpenAI: {prompt}")
         
         response_text = self.model.predict(prompt)
         return response_text

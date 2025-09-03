@@ -61,7 +61,6 @@ async def test_cors():
     """
     Test endpoint to verify CORS is working
     """
-    logger.info("CORS test endpoint accessed")
     return {"message": "CORS is working!", "timestamp": time.time()}
 
 # Pydantic models for request/response
@@ -83,34 +82,13 @@ async def log_requests(request: Request, call_next):
     
     # Log request details
     logger.info(f"Request: {request.method} {request.url}")
-    logger.info(f"Headers: {dict(request.headers)}")
-    
-    # Log CORS-specific headers
-    origin = request.headers.get("origin")
-    if origin:
-        logger.info(f"CORS Origin: {origin}")
-    
-    # Log request body for POST requests
-    if request.method == "POST":
-        try:
-            body = await request.body()
-            if body:
-                logger.info(f"Request body: {body.decode()}")
-        except Exception as e:
-            logger.warning(f"Could not read request body: {e}")
     
     # Process the request
     response = await call_next(request)
     
     # Log response details
     process_time = time.time() - start_time
-    logger.info(f"Response status: {response.status_code}")
-    logger.info(f"Response time: {process_time:.3f}s")
-    
-    # Log CORS response headers
-    cors_headers = {k: v for k, v in response.headers.items() if 'access-control' in k.lower()}
-    if cors_headers:
-        logger.info(f"CORS Response headers: {cors_headers}")
+    logger.info(f"Response status: {response.status_code}, time: {process_time:.3f}s")
     
     return response
 
@@ -166,7 +144,6 @@ async def options_rag_answer():
     """
     Handle CORS preflight request for /rag/answer
     """
-    logger.info("OPTIONS request received for /rag/answer")
     return {"message": "CORS preflight handled"}
 
 # Health and Info Endpoints
@@ -175,7 +152,6 @@ async def health_check():
     """
     Health check endpoint
     """
-    logger.info("Health check requested")
     return {"status": "healthy", "service": "PharmaRAG"}
 
 @app.get("/")
@@ -183,7 +159,6 @@ async def root():
     """
     Root endpoint with service information
     """
-    logger.info("Root endpoint accessed")
     return {
         "service": "PharmaRAG Service",
         "version": "1.0.0",
@@ -207,8 +182,7 @@ if __name__ == "__main__":
         if not os.path.exists(CHROMA_PATH):
             logger.warning(f"Chroma directory {CHROMA_PATH} does not exist. It will be created on first use.")
         
-        logger.info("Service will be available at http://0.0.0.0:8000")
-        logger.info("CORS is enabled for localhost:3000")
+        logger.info("Service starting on http://0.0.0.0:8000")
         uvicorn.run(app, host="0.0.0.0", port=8000)
     except Exception as e:
         logger.error(f"Failed to start service: {str(e)}", exc_info=True)
