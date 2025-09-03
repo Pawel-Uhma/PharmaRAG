@@ -5,14 +5,19 @@ A FastAPI-based service that provides RAG (Retrieval-Augmented Generation) capab
 ## Features
 
 - **RAG Endpoint**: POST `/rag/answer` - Get AI-generated answers based on pharmaceutical documents
-- **Health Check**: GET `/health` - Service health monitoring
-- **Root Endpoint**: GET `/` - Service information and available endpoints
+
+## Architecture
+
+The service is organized into modular components:
+
+- **`rag_service.py`** - Main orchestrator and FastAPI application
+- **`ask.py`** - OpenAI service for RAG queries and embeddings
 
 ## Setup
 
 1. **Install dependencies**:
    ```bash
-   pip install -r requrements.txt
+   pip install -r requirements.txt
    ```
 
 2. **Environment Configuration**:
@@ -45,7 +50,16 @@ Response:
 ```json
 {
   "response": "AI-generated answer based on pharmaceutical documents...",
-  "sources": ["metformina.md", "other_source.md"]
+  "sources": ["metformina", "other_source"],
+  "metadata": [
+    {
+      "h1": "Metformina",
+      "h2": "Skutki uboczne",
+      "source": "metformina.md",
+      "relevance_score": 0.85,
+      "chunk_content": "Metformina może powodować..."
+    }
+  ]
 }
 ```
 
@@ -77,20 +91,6 @@ Response:
 }
 ```
 
-## Testing
-
-Run the test script to verify the service is working:
-
-```bash
-python test_service.py
-```
-
-## API Documentation
-
-Once the service is running, you can access:
-- **Interactive API docs**: `http://localhost:8000/docs`
-- **ReDoc documentation**: `http://localhost:8000/redoc`
-
 ## Architecture
 
 The service uses:
@@ -99,14 +99,9 @@ The service uses:
 - **OpenAI** for embeddings and language model
 - **LangChain** for RAG orchestration
 
-## Error Handling
-
-- **404**: No matching results found in the database
-- **500**: Internal server errors
-- **422**: Validation errors for malformed requests
-
 ## Notes
 
-- The service expects pharmaceutical documents to be ingested into the Chroma database
+- The Chroma database is already populated with pharmaceutical documents
 - Make sure your OpenAI API key has sufficient credits for embeddings and completions
 - The service runs on port 8000 by default
+- CORS is enabled for localhost:3000 for frontend integration

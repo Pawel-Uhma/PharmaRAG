@@ -140,10 +140,10 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         return <div key={index} className="h-3" />;
       }
       
-      // Handle markdown H1 headers (lines starting with #)
+      // Handle markdown H1 headers (lines starting with #) - make them large and bold
       if (trimmedLine.startsWith('# ')) {
         return (
-          <h1 key={index} className="text-4xl font-bold text-blue-600 mb-6 mt-8 first:mt-0">
+          <h1 key={index} className="text-5xl font-bold text-blue-600 mb-8 mt-8 first:mt-0 text-center">
             {trimmedLine.substring(2)}
           </h1>
         );
@@ -151,24 +151,11 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       
       // Handle markdown H2 headers (lines starting with ##)
       if (trimmedLine.startsWith('## ')) {
-        const headerText = trimmedLine.substring(3);
         return (
           <h2 key={index} className="text-3xl font-bold text-black mb-4 mt-6">
-            {headerText}
+            {trimmedLine.substring(3)}
           </h2>
         );
-      }
-      
-      // Skip duplicate content that follows headers (e.g., if content has both "## Header" and "Some text: Header")
-      if (index > 0) {
-        const previousLine = lines[index - 1].trim();
-        if (previousLine.startsWith('## ') || previousLine.startsWith('# ') || previousLine.startsWith('### ')) {
-          const previousHeader = previousLine.replace(/^#+\s*/, '');
-          // If current line contains the same header text, skip it
-          if (trimmedLine.includes(previousHeader) && trimmedLine.length < previousHeader.length + 20) {
-            return null; // Skip this line
-          }
-        }
       }
       
       // Handle markdown H3 headers (lines starting with ###)
