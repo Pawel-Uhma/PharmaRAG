@@ -29,6 +29,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [autoSendQuestion, setAutoSendQuestion] = useState<string | null>(null);
 
   // Initialize suggested questions when component mounts
   useEffect(() => {
@@ -38,15 +39,23 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     }
   }, [messages.length]);
 
+  // Auto-send when a suggested question is set
+  useEffect(() => {
+    if (autoSendQuestion && inputText === autoSendQuestion) {
+      setAutoSendQuestion(null);
+      setTimeout(() => {
+        onSend();
+      }, 100);
+    }
+  }, [inputText, autoSendQuestion, onSend]);
+
   const handleQuestionClick = (question: string) => {
     // Clear suggested questions when a question is clicked
     setSuggestedQuestions([]);
-    // Set the input text and send immediately
+    
+    // Set the auto-send flag and input text
+    setAutoSendQuestion(question);
     setInputText(question);
-    // Small delay to ensure state update, then send
-    setTimeout(() => {
-      onSend();
-    }, 50);
   };
 
   const scrollToBottom = () => {

@@ -17,6 +17,16 @@ interface LibraryViewProps {
   isInitialLoad?: boolean;
   totalCount?: number;
   error?: string | null;
+  currentPage?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
+  onPageChange?: (page: number) => void;
+  onNextPage?: () => void;
+  onPreviousPage?: () => void;
+  searchQuery?: string;
+  onSearch?: (query: string) => void;
+  onClearSearch?: () => void;
 }
 
 export const LibraryView: React.FC<LibraryViewProps> = ({
@@ -27,24 +37,31 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   loadingProgress = 0,
   isInitialLoad = false,
   totalCount = 0,
-  error = null
+  error = null,
+  currentPage = 1,
+  totalPages = 1,
+  hasNext = false,
+  hasPrevious = false,
+  searchQuery = '',
+  onPageChange,
+  onNextPage,
+  onPreviousPage,
+  onSearch,
+  onClearSearch
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
 
-  // Filter medicine names based on search query
-  const filteredMedicineNames = useMemo(() => {
-    if (searchQuery.trim() === '') {
-      return medicineNames;
-    }
-    return medicineNames.filter(name => 
-      name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [medicineNames, searchQuery]);
+  // Use the search query from props if available, otherwise use local state
+  const effectiveSearchQuery = searchQuery !== undefined ? searchQuery : localSearchQuery;
 
-  // Group filtered names by first letter
+  // When using server-side search, we don't need to filter locally
+  // The medicineNames prop already contains the filtered results
+  const displayNames = medicineNames;
+
+  // Group names by first letter (only for display purposes)
   const groupedNames = useMemo(() => {
     const grouped: Record<string, string[]> = {};
-    filteredMedicineNames.forEach(name => {
+    displayNames.forEach(name => {
       const firstLetter = name.charAt(0).toUpperCase();
       if (!grouped[firstLetter]) {
         grouped[firstLetter] = [];
@@ -56,10 +73,24 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
     return Object.fromEntries(
       Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))
     );
-  }, [filteredMedicineNames]);
+  }, [displayNames]);
 
   const handleMedicineClick = (medicineName: string) => {
     onMedicineSelect(medicineName);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setLocalSearchQuery(query);
+    if (onSearch) {
+      onSearch(query);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setLocalSearchQuery('');
+    if (onClearSearch) {
+      onClearSearch();
+    }
   };
 
   // Show loading state only if it's the initial load and we have no names yet
@@ -114,7 +145,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm text-accent/80">
-            Znaleziono {filteredMedicineNames.length} z {medicineNames.length} leków
+            {effectiveSearchQuery.trim() !== '' 
+              ? `Znaleziono ${displayNames.length} z ${totalCount} leków dla "${effectiveSearchQuery}"`
+              : `Strona ${currentPage} z ${totalPages} • ${displayNames.length} z ${totalCount} leków`
+            }
           </div>
           {/* Loading Status Indicator */}
           <div className="flex items-center space-x-2">
@@ -137,8 +171,8 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           <input
             type="text"
             placeholder="Szukaj dokumentów..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={effectiveSearchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full px-4 py-3 pl-12 bg-elevated border border-accent-light rounded-theme text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent shadow-theme"
           />
           <svg 
@@ -187,6 +221,78 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-between">
+          <div className="text-sm text-accent/80">
+            Strona {currentPage} z {totalPages} • {medicineNames.length} z {totalCount} leków
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {/* Previous Page Button */}
+            <button
+              onClick={onPreviousPage}
+              disabled={!hasPrevious || isLoading}
+              className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+                hasPrevious && !isLoading
+                  ? 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
+                  : 'bg-elevated border-accent-light/50 text-accent/50 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange?.(pageNum)}
+                    disabled={isLoading}
+                    className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+                      pageNum === currentPage
+                        ? 'bg-accent text-white border-accent'
+                        : 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Page Button */}
+            <button
+              onClick={onNextPage}
+              disabled={!hasNext || isLoading}
+              className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+                hasNext && !isLoading
+                  ? 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
+                  : 'bg-elevated border-accent-light/50 text-accent/50 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

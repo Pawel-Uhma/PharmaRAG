@@ -29,12 +29,24 @@ function HomeContent() {
     medicineNames,
     totalCount,
     selectedDocument,
+    selectedMedicineName,
     selectDocument: selectCorporaDocument,
     isLoading: documentsLoading,
+    isDocumentLoading,
     loadingProgress,
     isInitialLoad,
     error: documentsError,
-    clearSelection
+    clearSelection,
+    currentPage,
+    totalPages,
+    hasNext,
+    hasPrevious,
+    goToPage,
+    goToNextPage,
+    goToPreviousPage,
+    searchQuery,
+    search,
+    clearSearch
   } = useCorpora();
 
   const currentMessage = messages[messages.length - 1];
@@ -128,33 +140,13 @@ function HomeContent() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0">
-              {/* Library Header */}
-              <div className="flex-shrink-0 p-4 border-b border-accent-light bg-accent-bg shadow-theme">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-xl font-bold text-accent mb-2">
-                      {selectedDocument ? selectedDocument.name : 'Biblioteka Dokumentów'}
-                    </h1>
-                    <p className="text-sm text-accent/80">
-                      {selectedDocument ? 'Szczegóły dokumentu' : `Przeglądaj ${totalCount} dokumentów farmaceutycznych`}
-                    </p>
-                  </div>
-                  {selectedDocument && (
-                    <button
-                      onClick={() => clearSelection()}
-                      className="px-4 py-2 text-sm text-accent hover:text-accent-hover hover:bg-accent-light rounded-theme transition-colors border border-accent-light hover:border-accent"
-                    >
-                      ← Powrót do biblioteki
-                    </button>
-                  )}
-                </div>
-              </div>
-              
               {/* Library Content */}
               <div className="flex-1 overflow-y-auto p-6 min-h-0">
-                {selectedDocument ? (
+                {selectedMedicineName ? (
                   <DocumentViewer 
                     document={selectedDocument} 
+                    selectedMedicineName={selectedMedicineName}
+                    isDocumentLoading={isDocumentLoading}
                     chunkToHighlight={contextPanel.chunkToHighlight}
                     onBackToLibrary={() => clearSelection()}
                   />
@@ -168,6 +160,16 @@ function HomeContent() {
                     isInitialLoad={isInitialLoad}
                     totalCount={totalCount}
                     error={documentsError}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    hasNext={hasNext}
+                    hasPrevious={hasPrevious}
+                    searchQuery={searchQuery}
+                    onPageChange={goToPage}
+                    onNextPage={goToNextPage}
+                    onPreviousPage={goToPreviousPage}
+                    onSearch={search}
+                    onClearSearch={clearSearch}
                   />
                 )}
               </div>

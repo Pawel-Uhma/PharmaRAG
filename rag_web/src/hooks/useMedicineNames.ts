@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react';
-import { MedicineNamesData } from '../types/medicine_names_types';
+import { useState, useEffect, useCallback } from 'react';
+
+interface PaginatedMedicineNamesResponse {
+  names: string[];
+  total_count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
 
 export const useMedicineNames = () => {
   const [names, setNames] = useState<string[]>([]);
@@ -8,52 +17,105 @@ export const useMedicineNames = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
+  const [pageSize] = useState(20);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const loadMedicineNames = async () => {
-      try {
-        setLoading(true);
-        setLoadingProgress(0);
-        setIsInitialLoad(true);
-        
-        // Load from static JSON file
-        const response = await fetch('/medicine_names_minimal.json');
-        if (!response.ok) {
-          throw new Error('Failed to load medicine names');
-        }
-        
-        const data: MedicineNamesData = await response.json();
-        setTotalCount(data.total_count);
-        
-        // Simulate real-time loading by adding names in batches
-        const batchSize = 50; // Load 50 names at a time
-        const totalBatches = Math.ceil(data.names.length / batchSize);
-        
-        for (let i = 0; i < totalBatches; i++) {
-          const startIndex = i * batchSize;
-          const endIndex = Math.min(startIndex + batchSize, data.names.length);
-          const batch = data.names.slice(startIndex, endIndex);
-          
-          // Add a small delay to simulate real-time loading
-          await new Promise(resolve => setTimeout(resolve, 10));
-          
-          setNames(prevNames => [...prevNames, ...batch]);
-          setLoadingProgress(((i + 1) / totalBatches) * 100);
-        }
-        
-        setError(null);
-        console.log(`Loaded ${data.names.length} medicine names in batches`);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Error loading medicine names:', err);
-      } finally {
-        setLoading(false);
-        setIsInitialLoad(false);
+  const loadPage = async (page: number, query?: string) => {
+    try {
+      setLoading(true);
+      setLoadingProgress(0);
+      
+      const isSearch = query && query.trim() !== '';
+      const endpoint = isSearch 
+        ? `http://localhost:8000/medicine-names/search?query=${encodeURIComponent(query!)}&page=${page}&page_size=${pageSize}`
+        : `http://localhost:8000/medicine-names/paginated?page=${page}&page_size=${pageSize}`;
+      
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      
+      const data: PaginatedMedicineNamesResponse = await response.json();
+      
+      setNames(data.names);
+      setTotalCount(data.total_count);
+      setCurrentPage(data.page);
+      setTotalPages(data.total_pages);
+      setHasNext(data.has_next);
+      setHasPrevious(data.has_previous);
+      setLoadingProgress(100);
+      setError(null);
+      
+      const action = isSearch ? 'searched' : 'loaded';
+      console.log(`${action} page ${data.page}/${data.total_pages} with ${data.names.length} medicine names`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error loading medicine names:', err);
+    } finally {
+      setLoading(false);
+      setIsInitialLoad(false);
+    }
+  };
 
-    loadMedicineNames();
+  // Load first page on initial mount
+  useEffect(() => {
+    loadPage(1);
   }, []);
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (query: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          setSearchQuery(query);
+          if (query.trim() === '') {
+            // If search is cleared, go back to first page of all medicines
+            loadPage(1);
+          } else if (query.trim().length >= 3) {
+            // Only search if query has 3 or more characters
+            loadPage(1, query);
+          } else {
+            // For queries with less than 3 characters, just show first page without search
+            loadPage(1);
+          }
+        }, 300); // 300ms delay
+      };
+    })(),
+    []
+  );
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      loadPage(page, searchQuery);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (hasNext) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (hasPrevious) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const search = (query: string) => {
+    debouncedSearch(query);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    loadPage(1);
+  };
 
   return { 
     names, 
@@ -61,6 +123,16 @@ export const useMedicineNames = () => {
     loading, 
     loadingProgress, 
     isInitialLoad, 
-    error 
+    error,
+    currentPage,
+    totalPages,
+    hasNext,
+    hasPrevious,
+    searchQuery,
+    goToPage,
+    goToNextPage,
+    goToPreviousPage,
+    search,
+    clearSearch
   };
 };

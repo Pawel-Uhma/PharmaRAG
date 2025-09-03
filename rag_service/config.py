@@ -1,102 +1,61 @@
 """
-Configuration file for PharmaRAG Service
-Centralizes all cache, performance, and service settings
+Configuration module for PharmaRAG service.
+Handles environment variables and application settings.
 """
 
 import os
 from pathlib import Path
-from typing import Optional
+from dotenv import load_dotenv
+import logging
 
-# Environment variables with defaults
-class Config:
-    # API Configuration
-    API_KEY: Optional[str] = os.getenv("API_KEY")
-    MODEL: str = os.getenv("MODEL", "gpt-4o-mini")
-    
-    # Service Configuration
-    CHROMA_PATH: str = os.getenv("CHROMA_PATH", "chroma")
-    TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.2"))
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "8000"))
-    
-    # Cache Configuration
-    ENABLE_CACHE: bool = os.getenv("ENABLE_CACHE", "true").lower() == "true"
-    CACHE_TTL_MINUTES: int = int(os.getenv("CACHE_TTL_MINUTES", "10"))
-    CACHE_MAX_SIZE: int = int(os.getenv("CACHE_MAX_SIZE", "1000"))
-    
-    # Performance Configuration
-    MAX_CONCURRENT_REQUESTS: int = int(os.getenv("MAX_CONCURRENT_REQUESTS", "100"))
-    REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
-    
-    # Logging Configuration
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FORMAT: str = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    
-    # CORS Configuration
-    ALLOWED_ORIGINS: list = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
-    
-    # Health Check Configuration
-    HEALTH_CHECK_CACHE_THRESHOLD: float = float(os.getenv("HEALTH_CHECK_CACHE_THRESHOLD", "0.8"))
-    HEALTH_CHECK_RESPONSE_TIME_THRESHOLD_MS: int = int(os.getenv("HEALTH_CHECK_RESPONSE_TIME_THRESHOLD_MS", "1000"))
-    
-    @classmethod
-    def validate(cls) -> bool:
-        """Validate required configuration values"""
-        if not cls.API_KEY:
-            return False
-        return True
-    
-    @classmethod
-    def get_cache_config(cls) -> dict:
-        """Get cache configuration as dictionary"""
-        return {
-            "enabled": cls.ENABLE_CACHE,
-            "ttl_minutes": cls.CACHE_TTL_MINUTES,
-            "max_size": cls.CACHE_MAX_SIZE,
-            "ttl_seconds": cls.CACHE_TTL_MINUTES * 60
-        }
-    
-    @classmethod
-    def get_performance_config(cls) -> dict:
-        """Get performance configuration as dictionary"""
-        return {
-            "max_concurrent_requests": cls.MAX_CONCURRENT_REQUESTS,
-            "request_timeout_seconds": cls.REQUEST_TIMEOUT_SECONDS,
-            "health_check_cache_threshold": cls.HEALTH_CHECK_CACHE_THRESHOLD,
-            "health_check_response_time_threshold_ms": cls.HEALTH_CHECK_RESPONSE_TIME_THRESHOLD_MS
-        }
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Environment-specific configurations
-class DevelopmentConfig(Config):
-    """Development environment configuration"""
-    LOG_LEVEL = "DEBUG"
-    CACHE_TTL_MINUTES = 5  # Shorter TTL for development
+# Load environment variables
+env_path = Path(__file__).resolve().parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
-class ProductionConfig(Config):
-    """Production environment configuration"""
-    LOG_LEVEL = "INFO"
-    CACHE_TTL_MINUTES = 15  # Longer TTL for production
-    CACHE_MAX_SIZE = 2000  # Larger cache for production
+# Database configuration
+CHROMA_PATH = "chroma"
+TEMPERATURE = 0.2
 
-class TestingConfig(Config):
-    """Testing environment configuration"""
-    LOG_LEVEL = "DEBUG"
-    ENABLE_CACHE = False  # Disable cache for testing
-    CACHE_TTL_MINUTES = 1
+# Cache configuration - Optimized for performance
+CACHE_TTL_MINUTES = int(os.getenv("CACHE_TTL_MINUTES", "30"))  # Increased from 10 to 30 minutes
+CACHE_MAX_SIZE = int(os.getenv("CACHE_MAX_SIZE", "2000"))  # Increased from 1000 to 2000
+ENABLE_CACHE = os.getenv("ENABLE_CACHE", "true").lower() == "true"
 
-# Configuration factory
-def get_config(environment: str = None) -> Config:
-    """Get configuration based on environment"""
-    if environment is None:
-        environment = os.getenv("ENVIRONMENT", "development").lower()
-    
-    config_map = {
-        "development": DevelopmentConfig,
-        "production": ProductionConfig,
-        "testing": TestingConfig
-    }
-    
-    return config_map.get(environment, DevelopmentConfig)
+# Memory cache configuration
+MEMORY_CACHE_SIZE = int(os.getenv("MEMORY_CACHE_SIZE", "100"))  # Number of documents to keep in memory
+MEMORY_CACHE_TTL_HOURS = int(os.getenv("MEMORY_CACHE_TTL_HOURS", "2"))  # Memory cache TTL
 
-# Default configuration instance
-config = get_config()
+# Database optimization settings
+DB_CONNECTION_POOL_SIZE = int(os.getenv("DB_CONNECTION_POOL_SIZE", "5"))
+DB_QUERY_TIMEOUT_MS = int(os.getenv("DB_QUERY_TIMEOUT_MS", "5000"))
+DB_MAX_RESULTS = int(os.getenv("DB_MAX_RESULTS", "100"))
+
+# API configuration
+API_KEY = os.getenv("API_KEY")
+MODEL = os.getenv("MODEL", "gpt-4o-mini")
+
+# CORS configuration
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
+
+# Log API key status (without exposing the actual key)
+if API_KEY:
+    logger.info("API_KEY loaded successfully")
+else:
+    logger.warning("API_KEY not found in environment variables")
+
+# Service configuration
+SERVICE_NAME = "PharmaRAG Service"
+SERVICE_VERSION = "1.0.0"
+SERVICE_HOST = "0.0.0.0"
+SERVICE_PORT = 8000
+
+# Performance monitoring
+ENABLE_PERFORMANCE_MONITORING = os.getenv("ENABLE_PERFORMANCE_MONITORING", "true").lower() == "true"
+PERFORMANCE_LOG_THRESHOLD_MS = int(os.getenv("PERFORMANCE_LOG_THRESHOLD_MS", "1000"))  # Log operations taking longer than this
