@@ -73,22 +73,31 @@ class RAGResponse(BaseModel):
     sources: List[Optional[str]]
     metadata: List[dict]
 
-class PaginationInfo(BaseModel):
+class MedicineNamesResponse(BaseModel):
+    names: List[str]
+    total_count: int
     page: int
     page_size: int
     total_pages: int
-    total_items: int
     has_next: bool
     has_previous: bool
 
-class MedicineNamesResponse(BaseModel):
-    names: List[str]
-    pagination: PaginationInfo
-
 class MedicineNamesSearchResponse(BaseModel):
     names: List[str]
-    query: str
-    pagination: PaginationInfo
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+class DocumentResponse(BaseModel):
+    name: str
+    filename: str
+    source: Optional[str] = None
+    h1: Optional[str] = None
+    h2: Optional[str] = None
+    content: Optional[str] = None
 
 # Global service instances
 openai_service = None
@@ -254,6 +263,92 @@ async def get_medicine_names_count():
         logger.error(f"Unexpected error in get_medicine_names_count: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+# Documents Endpoint
+@app.get("/documents/{medicine_name}", response_model=DocumentResponse)
+async def get_document(medicine_name: str):
+    """
+    Get document content for a specific medicine name
+    
+    Args:
+        medicine_name: URL-encoded medicine name (path parameter)
+    
+    Returns:
+        Document information including content, metadata, and source
+    """
+    logger.info(f"Received document request for medicine: {medicine_name}")
+    
+    try:
+        # Decode the URL-encoded medicine name
+        decoded_medicine_name = medicine_name.replace('_', ' ')
+        
+        # Look for the document file in the data directory
+        data_dir = Path("data")
+        if not data_dir.exists():
+            raise HTTPException(status_code=404, detail="Data directory not found")
+        
+        # Find the document file that matches the medicine name
+        document_file = None
+        for file_path in data_dir.glob("*.md"):
+            # Extract medicine name from filename (remove .md extension and replace underscores)
+            file_medicine_name = file_path.stem.replace('_', ' ')
+            
+            # Check if the medicine name matches (case-insensitive)
+            if file_medicine_name.lower() == decoded_medicine_name.lower():
+                document_file = file_path
+                break
+        
+        if not document_file:
+            raise HTTPException(status_code=404, detail=f"Document not found for medicine: {decoded_medicine_name}")
+        
+        # Read the document content
+        with open(document_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Parse the content to extract metadata
+        lines = content.split('\n')
+        h1 = None
+        h2 = None
+        source = None
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('# ') and not h1:
+                h1 = line[2:].strip()
+            elif line.startswith('## ') and not h2:
+                h2 = line[3:].strip()
+            elif line.startswith('## Źródło') or line.startswith('## Source'):
+                # Extract source URL from the next line or from the same line
+                if 'http' in line:
+                    source = line.split('http')[1].strip()
+                    if not source.startswith('s://'):
+                        source = 'http' + source
+                elif len(lines) > lines.index(line) + 1:
+                    next_line = lines[lines.index(line) + 1].strip()
+                    if 'http' in next_line:
+                        source = next_line.split('http')[1].strip()
+                        if not source.startswith('s://'):
+                            source = 'http' + source
+        
+        # Create response object
+        document_response = DocumentResponse(
+            name=decoded_medicine_name,
+            filename=document_file.name,
+            source=source,
+            h1=h1,
+            h2=h2,
+            content=content
+        )
+        
+        logger.info(f"Document loaded successfully for: {decoded_medicine_name}")
+        return document_response
+        
+    except HTTPException:
+        logger.warning("HTTPException raised, re-raising")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_document: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 # Health and Info Endpoints
 @app.get("/health")
 async def health_check():
@@ -275,6 +370,7 @@ async def root():
             "medicine_names_paginated": "/medicine-names/paginated",
             "medicine_names_search": "/medicine-names/search",
             "medicine_names_count": "/medicine-names/count",
+            "documents": "/documents/{medicineName}",
             "health": "/health"
         }
     }

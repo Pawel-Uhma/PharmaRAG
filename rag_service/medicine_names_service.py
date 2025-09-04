@@ -85,17 +85,15 @@ class MedicineNamesService:
             # Get the slice of names for the current page
             page_names = self._medicine_names[start_index:end_index]
             
-            # Build response
+            # Build response with flat structure for frontend compatibility
             response = {
                 "names": page_names,
-                "pagination": {
-                    "page": page,
-                    "page_size": page_size,
-                    "total_pages": total_pages,
-                    "total_items": total_items,
-                    "has_next": page < total_pages,
-                    "has_previous": page > 1
-                }
+                "total_count": total_items,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
             }
             
             logger.info(f"Returning page {page} of {total_pages} with {len(page_names)} items")
@@ -154,18 +152,15 @@ class MedicineNamesService:
             # Get the slice of filtered names for the current page
             page_names = filtered_names[start_index:end_index]
             
-            # Build response
+            # Build response with flat structure for frontend compatibility
             response = {
                 "names": page_names,
-                "query": query,
-                "pagination": {
-                    "page": page,
-                    "page_size": page_size,
-                    "total_pages": total_pages,
-                    "total_items": total_items,
-                    "has_next": page < total_pages,
-                    "has_previous": page > 1
-                }
+                "total_count": total_items,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
             }
             
             logger.info(f"Search '{query}' returned {total_items} results, showing page {page} of {total_pages}")
