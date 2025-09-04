@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 # Import our modules
 from ask import OpenAIService
+from medicine_names_service import MedicineNamesService
 import uvicorn
 
 # Configure logging
@@ -72,8 +73,26 @@ class RAGResponse(BaseModel):
     sources: List[Optional[str]]
     metadata: List[dict]
 
+class PaginationInfo(BaseModel):
+    page: int
+    page_size: int
+    total_pages: int
+    total_items: int
+    has_next: bool
+    has_previous: bool
+
+class MedicineNamesResponse(BaseModel):
+    names: List[str]
+    pagination: PaginationInfo
+
+class MedicineNamesSearchResponse(BaseModel):
+    names: List[str]
+    query: str
+    pagination: PaginationInfo
+
 # Global service instances
 openai_service = None
+medicine_names_service = None
 
 # Middleware to log all requests
 @app.middleware("http")
@@ -94,7 +113,7 @@ async def log_requests(request: Request, call_next):
 
 def initialize_services():
     """Initialize all service components."""
-    global openai_service
+    global openai_service, medicine_names_service
     
     try:
         logger.info("Initializing services...")
@@ -105,6 +124,10 @@ def initialize_services():
         # Initialize OpenAI service
         openai_service = OpenAIService(API_KEY)
         logger.info("OpenAI service initialized")
+        
+        # Initialize Medicine Names service
+        medicine_names_service = MedicineNamesService()
+        logger.info("Medicine Names service initialized")
         
         logger.info("All services initialized successfully")
         
@@ -146,6 +169,91 @@ async def options_rag_answer():
     """
     return {"message": "CORS preflight handled"}
 
+# Medicine Names Endpoints
+@app.get("/medicine-names/paginated", response_model=MedicineNamesResponse)
+async def get_paginated_medicine_names(page: int = 1, page_size: int = 20):
+    """
+    Get paginated medicine names
+    
+    Args:
+        page: Page number (default: 1)
+        page_size: Number of items per page (default: 20, max: 100)
+    
+    Returns:
+        Paginated list of medicine names with pagination metadata
+    """
+    logger.info(f"Received medicine names request: page={page}, page_size={page_size}")
+    
+    try:
+        if not medicine_names_service:
+            raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
+        
+        result = medicine_names_service.get_paginated_names(page=page, page_size=page_size)
+        logger.info("Medicine names pagination completed successfully")
+        return MedicineNamesResponse(**result)
+        
+    except HTTPException:
+        logger.warning("HTTPException raised, re-raising")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_paginated_medicine_names: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.get("/medicine-names/search", response_model=MedicineNamesSearchResponse)
+async def search_medicine_names(query: str, page: int = 1, page_size: int = 20):
+    """
+    Search medicine names by query with pagination
+    
+    Args:
+        query: Search query string
+        page: Page number (default: 1)
+        page_size: Number of items per page (default: 20, max: 100)
+    
+    Returns:
+        Filtered and paginated list of medicine names with pagination metadata
+    """
+    logger.info(f"Received medicine names search request: query='{query}', page={page}, page_size={page_size}")
+    
+    try:
+        if not medicine_names_service:
+            raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
+        
+        result = medicine_names_service.search_names(query=query, page=page, page_size=page_size)
+        logger.info("Medicine names search completed successfully")
+        return MedicineNamesSearchResponse(**result)
+        
+    except HTTPException:
+        logger.warning("HTTPException raised, re-raising")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in search_medicine_names: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.get("/medicine-names/count")
+async def get_medicine_names_count():
+    """
+    Get total count of medicine names
+    
+    Returns:
+        Total count of available medicine names
+    """
+    logger.info("Received medicine names count request")
+    
+    try:
+        if not medicine_names_service:
+            raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
+        
+        count = medicine_names_service.get_total_count()
+        logger.info(f"Medicine names count: {count}")
+        return {"total_count": count}
+        
+    except HTTPException:
+        logger.warning("HTTPException raised, re-raising")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_medicine_names_count: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 # Health and Info Endpoints
 @app.get("/health")
 async def health_check():
@@ -164,6 +272,9 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "rag_answer": "/rag/answer",
+            "medicine_names_paginated": "/medicine-names/paginated",
+            "medicine_names_search": "/medicine-names/search",
+            "medicine_names_count": "/medicine-names/count",
             "health": "/health"
         }
     }
