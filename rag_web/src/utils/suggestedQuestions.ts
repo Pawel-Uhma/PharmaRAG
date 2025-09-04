@@ -48,7 +48,7 @@ export const SUGGESTED_QUESTIONS = [
     "Jak działa Lexapro?",
     "Czy można stosować Olej z nasion wiesioka fit w ciąży?",
     "Jaka jest dawka Paranit?",
-    "Kiedy stosować Posterisan?"
+    "Kiedy stosować Predasol?"
 ]
 
 

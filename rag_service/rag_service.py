@@ -278,8 +278,11 @@ async def get_document(medicine_name: str):
     logger.info(f"Received document request for medicine: {medicine_name}")
     
     try:
-        # Decode the URL-encoded medicine name
-        decoded_medicine_name = medicine_name.replace('_', ' ')
+        # Import urllib.parse for URL decoding
+        from urllib.parse import unquote
+        
+        # Decode the URL-encoded medicine name and replace underscores with spaces
+        decoded_medicine_name = unquote(medicine_name).replace('_', ' ')
         
         # Look for the document file in the data directory
         data_dir = Path("data")
@@ -288,14 +291,91 @@ async def get_document(medicine_name: str):
         
         # Find the document file that matches the medicine name
         document_file = None
+        
+        # Normalize both names for comparison (remove Polish characters, convert to lowercase)
+        def normalize_name(name):
+            """Normalize name by removing Polish characters and converting to lowercase"""
+            # Polish character mapping
+            polish_map = {
+                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
+                'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+                'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N',
+                'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+            }
+            
+            # Convert to lowercase first
+            normalized = name.lower()
+            
+            # Replace Polish characters
+            for polish_char, latin_char in polish_map.items():
+                normalized = normalized.replace(polish_char, latin_char)
+            
+            # Remove % character (common in medicine names)
+            normalized = normalized.replace('%', '')
+            
+            # Remove + character (common in medicine names like D3+K2)
+            normalized = normalized.replace('+', '')
+            
+            return normalized
+        
+        def create_variants(name):
+            """Create multiple variants of a name for flexible matching"""
+            variants = []
+            
+            # Original name
+            variants.append(name.lower())
+            
+            # Normalized name (without Polish characters, % and +)
+            variants.append(normalize_name(name))
+            
+            # Variant with Polish characters converted to Latin
+            polish_to_latin = name.lower()
+            polish_map = {
+                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
+                'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z'
+            }
+            for polish_char, latin_char in polish_map.items():
+                polish_to_latin = polish_to_latin.replace(polish_char, latin_char)
+            variants.append(polish_to_latin)
+            
+            # Variant with Polish characters converted to Latin and + removed
+            polish_to_latin_no_plus = polish_to_latin.replace('+', '')
+            variants.append(polish_to_latin_no_plus)
+            
+            # Variant with Polish characters converted to Latin, + removed, and % removed
+            polish_to_latin_no_plus_no_percent = polish_to_latin_no_plus.replace('%', '')
+            variants.append(polish_to_latin_no_plus_no_percent)
+            
+            return list(set(variants))  # Remove duplicates
+        
+        decoded_variants = create_variants(decoded_medicine_name)
+        
         for file_path in data_dir.glob("*.md"):
             # Extract medicine name from filename (remove .md extension and replace underscores)
             file_medicine_name = file_path.stem.replace('_', ' ')
+            file_variants = create_variants(file_medicine_name)
             
-            # Check if the medicine name matches (case-insensitive)
-            if file_medicine_name.lower() == decoded_medicine_name.lower():
-                document_file = file_path
+            # Check if any variants match
+            for decoded_variant in decoded_variants:
+                for file_variant in file_variants:
+                    if decoded_variant == file_variant:
+                        document_file = file_path
+                        break
+                if document_file:
+                    break
+            if document_file:
                 break
+        
+        # If still not found, try exact matching with underscores
+        if not document_file:
+            underscore_medicine_name = decoded_medicine_name.replace(' ', '_')
+            for file_path in data_dir.glob("*.md"):
+                file_medicine_name = file_path.stem
+                
+                # Check if the medicine name matches (case-insensitive)
+                if file_medicine_name.lower() == underscore_medicine_name.lower():
+                    document_file = file_path
+                    break
         
         if not document_file:
             raise HTTPException(status_code=404, detail=f"Document not found for medicine: {decoded_medicine_name}")

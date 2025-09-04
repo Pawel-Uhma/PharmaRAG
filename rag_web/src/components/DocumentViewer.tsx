@@ -119,6 +119,34 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     );
   }
 
+  // Extract source URL from document content
+  const extractSourceUrl = (content: string): string | null => {
+    if (!content) return null;
+    
+    const lines = content.split('\n');
+    let inSourceSection = false;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine === '## Źródło') {
+        inSourceSection = true;
+        continue;
+      }
+      
+      if (inSourceSection && trimmedLine.startsWith('http')) {
+        return trimmedLine;
+      }
+      
+      // If we find another header, stop looking
+      if (inSourceSection && (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### '))) {
+        break;
+      }
+    }
+    
+    return null;
+  };
+
   // Markdown-style content rendering with proper header detection
   const renderContent = (content: string) => {
     if (!content) {
@@ -132,7 +160,40 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     // Split content into lines
     const lines = content.split('\n');
     
-    const renderedContent = lines.map((line, index) => {
+    // Filter out the "## Źródło" section and its content
+    const filteredLines = [];
+    let skipSourceSection = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmedLine = line.trim();
+      
+      // Check if this is the start of the source section
+      if (trimmedLine === '## Źródło') {
+        skipSourceSection = true;
+        continue;
+      }
+      
+      // If we're in the source section, skip all lines until we find another header or end of content
+      if (skipSourceSection) {
+        // If we find another header (## or ###), stop skipping
+        if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### ')) {
+          skipSourceSection = false;
+          filteredLines.push(line);
+        }
+        // If we find a non-empty line that's not a URL (doesn't start with http), stop skipping
+        else if (trimmedLine !== '' && !trimmedLine.startsWith('http')) {
+          skipSourceSection = false;
+          filteredLines.push(line);
+        }
+        // Otherwise continue skipping
+        continue;
+      }
+      
+      filteredLines.push(line);
+    }
+    
+    const renderedContent = filteredLines.map((line, index) => {
       const trimmedLine = line.trim();
       
       // Skip empty lines
@@ -258,9 +319,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <p className="text-sm text-accent/80">{document.filename}</p>
           </div>
           <div className="flex items-center space-x-3">
-            {document.source && (
+            {(document.source || extractSourceUrl(document.content || '')) && (
               <a
-                href={document.source}
+                href={document.source || extractSourceUrl(document.content || '') || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 text-sm text-accent hover:text-accent-hover hover:bg-accent-light rounded-theme transition-colors border border-accent-light hover:border-accent flex items-center"
@@ -268,7 +329,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
-                Zobacz źródło
+                Źródło
               </a>
             )}
             {onBackToLibrary && (
