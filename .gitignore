@@ -9,4 +9,6 @@ __pycache__/
 # data
 **/chroma/
 **/data/
+**/chroma1/
+**/data1/
 .cursor/
