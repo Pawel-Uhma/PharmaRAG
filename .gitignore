@@ -5,7 +5,7 @@ node_modules
 .env.local
 # python
 .venv
-__pycache__/
+**/__pycache__/
 # data
 **/chroma/
 **/data/

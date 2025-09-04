@@ -7,6 +7,8 @@ Main FastAPI service that orchestrates RAG functionality using modular component
 import os
 import logging
 import time
+import re
+import unicodedata
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -39,6 +41,58 @@ if API_KEY:
     logger.info("API_KEY loaded successfully")
 else:
     logger.warning("API_KEY not found in environment variables")
+
+def normalize_document_name(name: str) -> str:
+    """
+    Normalize document name by handling Polish characters and special characters.
+    
+    Rules:
+    - Keep dots (.) and plus signs (+) as they are
+    - Convert forward slashes (/) to underscores
+    - Replace other non-alphanumeric characters with "_"
+    - Normalize Polish characters: ą→a, ć→c, ę→e, ł→l, ń→n, ó→o, ś→s, ź→z, ż→z
+    - Remove ł entirely (as per requirement)
+    - Convert to lowercase
+    
+    Args:
+        name: Original document name
+        
+    Returns:
+        Normalized document name
+    """
+    # Polish character mappings (excluding ł which should be removed)
+    polish_mappings = {
+        'ą': 'a', 'ć': 'c', 'ę': 'e', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
+        'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
+    }
+    
+    # Apply Polish character mappings first (before any normalization)
+    normalized = name
+    for polish_char, replacement in polish_mappings.items():
+        normalized = normalized.replace(polish_char, replacement)
+    
+    # Remove ł and Ł entirely
+    normalized = normalized.replace('ł', '').replace('Ł', '')
+    
+    # Now normalize unicode characters (after Polish character replacement)
+    normalized = unicodedata.normalize('NFD', normalized)
+    
+    # Convert forward slashes to underscores first
+    normalized = normalized.replace('/', '_')
+    
+    # Replace all remaining non-alphanumeric characters (except dots and plus signs) with underscore
+    normalized = re.sub(r'[^a-zA-Z0-9.+\-]', '_', normalized)
+    
+    # Remove multiple consecutive underscores
+    normalized = re.sub(r'_+', '_', normalized)
+    
+    # Remove leading and trailing underscores
+    normalized = normalized.strip('_')
+    
+    # Convert to lowercase
+    normalized = normalized.lower()
+    
+    return normalized
 
 # FastAPI app initialization
 app = FastAPI(
@@ -214,20 +268,26 @@ async def search_medicine_names(query: str, page: int = 1, page_size: int = 20):
     Search medicine names by query with pagination
     
     Args:
-        query: Search query string
+        query: Search query string (URL-encoded)
         page: Page number (default: 1)
         page_size: Number of items per page (default: 20, max: 100)
     
     Returns:
         Filtered and paginated list of medicine names with pagination metadata
     """
-    logger.info(f"Received medicine names search request: query='{query}', page={page}, page_size={page_size}")
+    # Import urllib.parse for URL decoding
+    from urllib.parse import unquote
+    
+    # Decode the URL-encoded query
+    decoded_query = unquote(query)
+    
+    logger.info(f"Received medicine names search request: original_query='{query}', decoded_query='{decoded_query}', page={page}, page_size={page_size}")
     
     try:
         if not medicine_names_service:
             raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
         
-        result = medicine_names_service.search_names(query=query, page=page, page_size=page_size)
+        result = medicine_names_service.search_names(query=decoded_query, page=page, page_size=page_size)
         logger.info("Medicine names search completed successfully")
         return MedicineNamesSearchResponse(**result)
         
@@ -292,90 +352,23 @@ async def get_document(medicine_name: str):
         # Find the document file that matches the medicine name
         document_file = None
         
-        # Normalize both names for comparison (remove Polish characters, convert to lowercase)
-        def normalize_name(name):
-            """Normalize name by removing Polish characters and converting to lowercase"""
-            # Polish character mapping
-            polish_map = {
-                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
-                'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
-                'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N',
-                'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
-            }
-            
-            # Convert to lowercase first
-            normalized = name.lower()
-            
-            # Replace Polish characters
-            for polish_char, latin_char in polish_map.items():
-                normalized = normalized.replace(polish_char, latin_char)
-            
-            # Remove % character (common in medicine names)
-            normalized = normalized.replace('%', '')
-            
-            # Remove + character (common in medicine names like D3+K2)
-            normalized = normalized.replace('+', '')
-            
-            return normalized
+        # Normalize the requested medicine name
+        normalized_requested_name = normalize_document_name(decoded_medicine_name)
+        logger.info(f"Normalized requested name: '{decoded_medicine_name}' -> '{normalized_requested_name}'")
         
-        def create_variants(name):
-            """Create multiple variants of a name for flexible matching"""
-            variants = []
-            
-            # Original name
-            variants.append(name.lower())
-            
-            # Normalized name (without Polish characters, % and +)
-            variants.append(normalize_name(name))
-            
-            # Variant with Polish characters converted to Latin
-            polish_to_latin = name.lower()
-            polish_map = {
-                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 
-                'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z'
-            }
-            for polish_char, latin_char in polish_map.items():
-                polish_to_latin = polish_to_latin.replace(polish_char, latin_char)
-            variants.append(polish_to_latin)
-            
-            # Variant with Polish characters converted to Latin and + removed
-            polish_to_latin_no_plus = polish_to_latin.replace('+', '')
-            variants.append(polish_to_latin_no_plus)
-            
-            # Variant with Polish characters converted to Latin, + removed, and % removed
-            polish_to_latin_no_plus_no_percent = polish_to_latin_no_plus.replace('%', '')
-            variants.append(polish_to_latin_no_plus_no_percent)
-            
-            return list(set(variants))  # Remove duplicates
-        
-        decoded_variants = create_variants(decoded_medicine_name)
-        
+        # Match against normalized filenames
         for file_path in data_dir.glob("*.md"):
-            # Extract medicine name from filename (remove .md extension and replace underscores)
+            # Extract medicine name from filename (remove .md extension and replace underscores with spaces)
             file_medicine_name = file_path.stem.replace('_', ' ')
-            file_variants = create_variants(file_medicine_name)
             
-            # Check if any variants match
-            for decoded_variant in decoded_variants:
-                for file_variant in file_variants:
-                    if decoded_variant == file_variant:
-                        document_file = file_path
-                        break
-                if document_file:
-                    break
-            if document_file:
+            # Normalize the filename for comparison
+            normalized_filename = normalize_document_name(file_medicine_name)
+            logger.debug(f"Normalized filename: '{file_medicine_name}' -> '{normalized_filename}'")
+            
+            # Compare normalized names
+            if normalized_filename == normalized_requested_name:
+                document_file = file_path
                 break
-        
-        # If still not found, try exact matching with underscores
-        if not document_file:
-            underscore_medicine_name = decoded_medicine_name.replace(' ', '_')
-            for file_path in data_dir.glob("*.md"):
-                file_medicine_name = file_path.stem
-                
-                # Check if the medicine name matches (case-insensitive)
-                if file_medicine_name.lower() == underscore_medicine_name.lower():
-                    document_file = file_path
-                    break
         
         if not document_file:
             raise HTTPException(status_code=404, detail=f"Document not found for medicine: {decoded_medicine_name}")
@@ -437,6 +430,24 @@ async def health_check():
     """
     return {"status": "healthy", "service": "PharmaRAG"}
 
+@app.get("/test-normalize/{text}")
+async def test_normalize(text: str):
+    """
+    Test endpoint to verify document name normalization
+    """
+    from urllib.parse import unquote
+    decoded_text = unquote(text)
+    normalized = normalize_document_name(decoded_text)
+    return {
+        "original": decoded_text,
+        "normalized": normalized,
+        "examples": {
+            "polish_chars": normalize_document_name("ąęćłńóśźż"),
+            "special_chars": normalize_document_name("test@#$%^&*()"),
+            "spaces_and_dashes": normalize_document_name("test - name with spaces")
+        }
+    }
+
 @app.get("/")
 async def root():
     """
@@ -451,6 +462,7 @@ async def root():
             "medicine_names_search": "/medicine-names/search",
             "medicine_names_count": "/medicine-names/count",
             "documents": "/documents/{medicineName}",
+            "test_normalize": "/test-normalize/{text}",
             "health": "/health"
         }
     }
