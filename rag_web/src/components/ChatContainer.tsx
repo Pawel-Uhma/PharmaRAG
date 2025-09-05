@@ -34,7 +34,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   // Initialize suggested questions when component mounts
   useEffect(() => {
     if (messages.length === 0) {
-      const questions = getRandomQuestions(3);
+      const questions = getRandomQuestions(5);
       setSuggestedQuestions(questions);
     }
   }, [messages.length]);

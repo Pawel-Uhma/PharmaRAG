@@ -65,7 +65,7 @@ export const Message: React.FC<MessageProps> = ({ message, onSourceClick }) => {
           <div className={`flex-1 ${message.isUser ? 'text-right' : ''}`}>
             <div className={`inline-block p-4 rounded-theme shadow-theme ${
               message.isUser
-                ? 'bg-white border-2 border-accent text-accent'
+                ? 'bg-gradient-to-br from-accent to-accent-dark text-white shadow-lg'
                 : 'bg-panel border border-accent-light text-primary'
             }`}>
               <div className="prose prose-sm max-w-none">
@@ -73,7 +73,7 @@ export const Message: React.FC<MessageProps> = ({ message, onSourceClick }) => {
               </div>
               
               {/* Message Metadata */}
-              <div className={`mt-3 text-xs opacity-70 ${message.isUser ? 'text-accent' : 'text-muted'}`}>
+              <div className={`mt-3 text-xs opacity-70 ${message.isUser ? 'text-white/80' : 'text-muted'}`}>
                 <span>{formatTime(message.timestamp)}</span>
                 {message.metadata?.processingTime && (
                   <span className="ml-3">

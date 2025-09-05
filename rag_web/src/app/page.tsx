@@ -1,12 +1,13 @@
 'use client';
 
-import { Header, ChatContainer, ContextPanel, LibraryView, DocumentViewer } from '../components';
+import { Header, ChatContainer, ContextPanel, LibraryView, DocumentViewer, InstructionView } from '../components';
 import { useChat } from '../hooks/useChat';
 import { useCorpora } from '../hooks/useCorpora';
 import { useState, useEffect } from 'react';
 
 function HomeContent() {
   const [activeView, setActiveView] = useState<'chat' | 'library'>('chat');
+  const [showInstructions, setShowInstructions] = useState(false);
   
   const {
     conversations,
@@ -113,12 +114,21 @@ function HomeContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleInfoClick = () => {
+    setShowInstructions(true);
+  };
+
+  const handleCloseInstructions = () => {
+    setShowInstructions(false);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-primary overflow-hidden">
       <Header 
         activeView={activeView}
         onChatTabClick={handleChatTabClick}
         onLibraryTabClick={handleLibraryTabClick}
+        onInfoClick={handleInfoClick}
       />
       
       {/* Main Content - 2-Pane Layout */}
@@ -188,6 +198,11 @@ function HomeContent() {
           />
         )}
       </div>
+      
+      {/* Instruction Modal */}
+      {showInstructions && (
+        <InstructionView onClose={handleCloseInstructions} />
+      )}
     </div>
   );
 }

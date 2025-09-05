@@ -10,3 +10,4 @@ export { DocumentViewer } from './DocumentViewer';
 export { LibraryView } from './LibraryView';
 export { ContextPanel } from './ContextPanel';
 export { SkeletonLoader, MessageSkeleton, SourceSkeleton } from './SkeletonLoader';
+export { InstructionView } from './InstructionView';
