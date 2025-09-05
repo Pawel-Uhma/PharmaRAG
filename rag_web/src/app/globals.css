@@ -18,6 +18,24 @@ html, body {
   overflow: hidden;
 }
 
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure touch targets are at least 44px */
+  button, input, textarea, select {
+    min-height: 44px;
+  }
+  
+  /* Improve text readability on mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--text);

@@ -121,10 +121,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full">
+    <div className="max-w-6xl mx-auto w-full px-2 sm:px-0">
       {/* Loading Progress Bar - Show when loading and we have some names */}
       {isLoading && medicineNames.length > 0 && (
-        <div className="mb-6 p-4 bg-accent-bg border border-accent-light rounded-theme">
+        <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-accent-bg border border-accent-light rounded-theme">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-accent">Ładowanie dokumentów...</span>
             <span className="text-sm text-accent/80">{Math.round(loadingProgress)}%</span>
@@ -142,9 +142,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       )}
 
       {/* Search Bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-sm text-accent/80">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 space-y-2 sm:space-y-0">
+          <div className="text-xs sm:text-sm text-accent/80">
             {effectiveSearchQuery.trim() !== '' 
               ? `Znaleziono ${displayNames.length} z ${totalCount} leków dla "${effectiveSearchQuery}"`
               : `Strona ${currentPage} z ${totalPages} • ${displayNames.length} z ${totalCount} leków`
@@ -153,13 +153,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           {/* Loading Status Indicator */}
           <div className="flex items-center space-x-2">
             {isLoading ? (
-              <div className="flex items-center space-x-2 text-sm text-accent">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
+              <div className="flex items-center space-x-2 text-xs sm:text-sm text-accent">
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-accent"></div>
                 <span>Ładowanie...</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 text-sm text-green-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm text-green-600">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 <span>Zakończono</span>
@@ -173,10 +173,10 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             placeholder="Szukaj dokumentów..."
             value={effectiveSearchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full px-4 py-3 pl-12 bg-elevated border border-accent-light rounded-theme text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent shadow-theme"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 pl-10 sm:pl-12 bg-elevated border border-accent-light rounded-theme text-primary placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent shadow-theme text-sm sm:text-base"
           />
           <svg 
-            className="absolute left-4 top-3.5 w-5 h-5 text-accent"
+            className="absolute left-3 sm:left-4 top-2.5 sm:top-3.5 w-4 h-4 sm:w-5 sm:h-5 text-accent"
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -187,18 +187,18 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       </div>
 
       {/* Documents Grid */}
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {Object.entries(groupedNames).map(([group, names]) => (
           <div key={group}>
             {/* Group Header */}
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-accent border-b border-accent-light pb-2">
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-accent border-b border-accent-light pb-2">
                 {group}
               </h2>
             </div>
             
             {/* Documents Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {names.map((name) => (
                 <DocumentCard
                   key={name}
@@ -212,11 +212,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         ))}
         
         {Object.keys(groupedNames).length === 0 && (
-          <div className="text-center py-12 text-muted">
-            <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-8 sm:py-12 text-muted px-4">
+            <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-lg font-medium">Nie znaleziono leków</p>
+            <p className="text-base sm:text-lg font-medium">Nie znaleziono leków</p>
             <p className="text-sm">Spróbuj zmienić wyszukiwanie</p>
           </div>
         )}
@@ -224,39 +224,39 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-between">
-          <div className="text-sm text-accent/80">
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <div className="text-xs sm:text-sm text-accent/80 text-center sm:text-left">
             Strona {currentPage} z {totalPages} • {medicineNames.length} z {totalCount} leków
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center sm:justify-end space-x-1 sm:space-x-2">
             {/* Previous Page Button */}
             <button
               onClick={onPreviousPage}
               disabled={!hasPrevious || isLoading}
-              className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-theme border transition-all duration-200 ${
                 hasPrevious && !isLoading
                   ? 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
                   : 'bg-elevated border-accent-light/50 text-accent/50 cursor-not-allowed'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
 
             {/* Page Numbers */}
             <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                 let pageNum;
-                if (totalPages <= 5) {
+                if (totalPages <= 3) {
                   pageNum = i + 1;
-                } else if (currentPage <= 3) {
+                } else if (currentPage <= 2) {
                   pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
+                } else if (currentPage >= totalPages - 1) {
+                  pageNum = totalPages - 2 + i;
                 } else {
-                  pageNum = currentPage - 2 + i;
+                  pageNum = currentPage - 1 + i;
                 }
 
                 return (
@@ -264,7 +264,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     key={pageNum}
                     onClick={() => onPageChange?.(pageNum)}
                     disabled={isLoading}
-                    className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-theme border transition-all duration-200 ${
                       pageNum === currentPage
                         ? 'bg-accent text-white border-accent'
                         : 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
@@ -280,13 +280,13 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
             <button
               onClick={onNextPage}
               disabled={!hasNext || isLoading}
-              className={`px-3 py-2 text-sm font-medium rounded-theme border transition-all duration-200 ${
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-theme border transition-all duration-200 ${
                 hasNext && !isLoading
                   ? 'bg-elevated border-accent-light text-accent hover:bg-accent-light hover:border-accent'
                   : 'bg-elevated border-accent-light/50 text-accent/50 cursor-not-allowed'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -310,16 +310,16 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 }) => {
   return (
     <div
-      className={`group relative p-4 rounded-theme cursor-pointer transition-all duration-200 border ${
+      className={`group relative p-3 sm:p-4 rounded-theme cursor-pointer transition-all duration-200 border ${
         isSelected
           ? 'bg-accent text-white shadow-theme-hover'
           : 'bg-elevated border-accent-light hover:bg-accent-light hover:border-accent hover:shadow-theme-hover'
       }`}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
         <div className="flex-1 min-w-0">
-          <h3 className={`text-sm font-semibold truncate mb-1 ${
+          <h3 className={`text-xs sm:text-sm font-semibold truncate mb-1 ${
             isSelected ? 'text-white' : 'text-primary'
           }`}>
             {document}
@@ -332,7 +332,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         </div>
         
         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <svg className={`w-4 h-4 ${
+          <svg className={`w-3 h-3 sm:w-4 sm:h-4 ${
             isSelected ? 'text-white' : 'text-accent'
           }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

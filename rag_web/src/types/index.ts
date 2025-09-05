@@ -73,4 +73,5 @@ export interface ContextPanelState {
   activeTab: 'sources' | 'history';
   selectedSource?: Source;
   chunkToHighlight?: string;
+  isOpen?: boolean;
 }

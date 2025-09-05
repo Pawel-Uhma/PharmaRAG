@@ -14,14 +14,14 @@ export const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
   if (questions.length === 0) return null;
 
   return (
-    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <h3 className="text-sm font-medium text-blue-700 mb-3">Przykładowe pytania:</h3>
-      <div className="flex flex-wrap gap-2">
+    <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-accent-bg border border-accent-light rounded-theme">
+      <h3 className="text-xs sm:text-sm font-medium text-accent mb-2 sm:mb-3">Przykładowe pytania:</h3>
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {questions.map((question, index) => (
           <button
             key={index}
             onClick={() => onQuestionClick(question)}
-            className="px-3 py-2 text-xs bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs bg-panel border border-accent-light text-accent hover:bg-accent-light hover:border-accent rounded-theme transition-all duration-200 hover:scale-105 shadow-theme min-h-[32px] sm:min-h-[36px]"
           >
             {question}
           </button>

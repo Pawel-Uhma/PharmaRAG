@@ -148,34 +148,50 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   };
 
   return (
-    <div className="w-96 h-full bg-panel border-l border-accent-light flex flex-col shadow-theme min-h-0">
-      {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-accent-light">
-        <h2 className="text-lg font-semibold text-accent">Kontekst</h2>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex-shrink-0 flex border-b border-accent-light">
-        {tabs.map((tab) => (
+    <>
+      {/* Mobile Overlay - only show when panel is open */}
+      {state.isOpen && <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => onStateChange({ ...state, isOpen: false })} />}
+      
+      {/* Context Panel */}
+      <div className={`w-full lg:w-96 h-full bg-panel border-l border-accent-light flex flex-col shadow-theme min-h-0 fixed lg:relative right-0 top-0 z-50 lg:z-auto transition-transform duration-300 ease-in-out ${
+        state.isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+      }`}>
+        {/* Header */}
+        <div className="flex-shrink-0 p-3 sm:p-4 border-b border-accent-light flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-accent">Kontekst</h2>
           <button
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors duration-200 ${
-              state.activeTab === tab.id
-                ? 'text-accent border-b-2 border-accent bg-accent-light'
-                : 'text-muted hover:text-accent hover:bg-accent-light/50'
-            }`}
+            onClick={() => onStateChange({ ...state, isOpen: false })}
+            className="lg:hidden p-1 rounded-theme text-muted hover:text-accent hover:bg-accent-light transition-all duration-200"
           >
-            <span className="mr-2">{tab.icon}</span>
-            {tab.label}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-4 min-h-0">
-        {renderTabContent()}
+        {/* Tabs */}
+        <div className="flex-shrink-0 flex border-b border-accent-light">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm font-medium transition-colors duration-200 ${
+                state.activeTab === tab.id
+                  ? 'text-accent border-b-2 border-accent bg-accent-light'
+                  : 'text-muted hover:text-accent hover:bg-accent-light/50'
+              }`}
+            >
+              <span className="mr-1 sm:mr-2">{tab.icon}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-0">
+          {renderTabContent()}
+        </div>
       </div>
-    </div>
+    </>
   );
 };

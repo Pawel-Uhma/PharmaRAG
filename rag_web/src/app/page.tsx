@@ -65,7 +65,15 @@ function HomeContent() {
     setContextPanel(prev => ({
       ...prev,
       activeTab: 'sources',
-      selectedSource: source
+      selectedSource: source,
+      isOpen: true // Open context panel when source is clicked
+    }));
+  };
+
+  const handleToggleContextPanel = () => {
+    setContextPanel(prev => ({
+      ...prev,
+      isOpen: !prev.isOpen
     }));
   };
 
@@ -131,8 +139,8 @@ function HomeContent() {
         onInfoClick={handleInfoClick}
       />
       
-      {/* Main Content - 2-Pane Layout */}
-      <div className="flex-1 flex min-h-0">
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex min-h-0 relative">
         {/* Center - Main Content */}
         <div className="flex-1 flex flex-col min-h-0">
           {activeView === 'chat' ? (
@@ -146,12 +154,13 @@ function HomeContent() {
                 onKeyPress={handleKeyPress}
                 isLoading={isLoading}
                 onSourceClick={handleSourceClick}
+                onToggleContextPanel={handleToggleContextPanel}
               />
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0">
               {/* Library Content */}
-              <div className="flex-1 overflow-y-auto p-6 min-h-0">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-6 min-h-0">
                 {selectedMedicineName ? (
                   <DocumentViewer 
                     document={selectedDocument} 

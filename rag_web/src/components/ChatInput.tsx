@@ -38,7 +38,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative">
-      <div className={`relative flex items-end space-x-3 p-3 rounded-theme border transition-all duration-200 ${
+      <div className={`relative flex items-end space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-theme border transition-all duration-200 ${
         isFocused
           ? 'border-accent bg-elevated shadow-theme-hover'
           : 'border-accent-light bg-panel hover:border-accent hover:shadow-theme'
@@ -54,15 +54,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             disabled={disabled}
             placeholder={placeholder}
             rows={1}
-            className="w-full resize-none bg-transparent text-primary placeholder-muted border-none outline-none text-sm leading-relaxed pr-12"
+            className="w-full resize-none bg-transparent text-primary placeholder-muted border-none outline-none text-sm leading-relaxed pr-8 sm:pr-12"
             style={{
-              minHeight: '24px',
-              maxHeight: '120px'
+              minHeight: '20px',
+              maxHeight: '100px'
             }}
           />
           
           {/* Character count */}
-          <div className="absolute bottom-0 right-0 text-xs text-muted">
+          <div className="absolute bottom-0 right-0 text-xs text-muted hidden sm:block">
             {value.length}/4000
           </div>
         </div>
@@ -71,21 +71,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <button
           onClick={handleSubmit}
           disabled={!value.trim() || disabled}
-          className={`flex-shrink-0 p-2 rounded-theme transition-all duration-200 ${
+          className={`flex-shrink-0 p-1.5 sm:p-2 rounded-theme transition-all duration-200 ${
             value.trim() && !disabled
               ? 'bg-accent text-white hover:bg-accent/90 hover:scale-105 shadow-theme-hover'
               : 'bg-accent-light text-muted cursor-not-allowed'
           }`}
           title="Wyślij wiadomość"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
         </button>
       </div>
 
       {/* Helper text */}
-      <div className="mt-2 text-xs text-muted text-center">
+      <div className="mt-1 sm:mt-2 text-xs text-muted text-center hidden sm:block">
         Naciśnij Enter aby wysłać, Shift+Enter dla nowej linii
       </div>
     </div>

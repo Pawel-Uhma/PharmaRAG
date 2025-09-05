@@ -21,6 +21,12 @@ export const metadata: Metadata = {
     apple: '/bot.png',
   },
   manifest: '/manifest.json',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   openGraph: {
     title: "PharmaRAG - AI Pharmaceutical Assistant",
     description: "AI-powered pharmaceutical information and medication assistant",
