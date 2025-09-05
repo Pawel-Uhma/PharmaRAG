@@ -49,10 +49,6 @@ export const InstructionView: React.FC<InstructionViewProps> = ({ onClose }) => 
                   <strong>PharmaRAG</strong> to inteligentny asystent farmaceutyczny wykorzystujący technologię RAG (Retrieval-Augmented Generation). 
                   Aplikacja umożliwia szybkie wyszukiwanie informacji o lekach, ich składzie, dawkowaniu, przeciwwskazaniach i interakcjach.
                 </p>
-                <p className="text-primary leading-relaxed mt-4">
-                  Projekt został stworzony przez <strong>Paweła Uhmę</strong> jako część portfolio, demonstrując umiejętności w zakresie 
-                  tworzenia zaawansowanych aplikacji AI, przetwarzania języka naturalnego i budowania interfejsów użytkownika.
-                </p>
               </div>
             </section>
 
@@ -174,14 +170,35 @@ export const InstructionView: React.FC<InstructionViewProps> = ({ onClose }) => 
               </h2>
               <div className="bg-panel border border-accent-light rounded-theme p-6">
                 <p className="text-primary mb-4">
-                  To jest projekt portfolio stworzony przez <strong>Paweła Uhmę</strong>. 
+                  To jest projekt portfolio stworzony przez <strong>Pawła Uhma</strong>. 
                   Jeśli masz pytania dotyczące implementacji lub chciałbyś nawiązać współpracę, 
                   zapraszam do kontaktu.
                 </p>
                 <div className="flex items-center space-x-4 text-sm text-muted">
-                  <span>📧 pawel.uhma@example.com</span>
-                  <span>🔗 LinkedIn: /in/pawel-uhma</span>
-                  <span>💼 GitHub: pawel-uhma</span>
+                  <a
+                    href="mailto:paweluhma136@gmail.com"
+                    className="hover:underline flex items-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    📧 paweluhma136@gmail.com
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/pawe%C5%82-uhma-63867b213/"
+                    className="hover:underline flex items-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    🔗 LinkedIn: /in/paweł-uhma-63867b213/
+                  </a>
+                  <a
+                    href="https://github.com/Pawel-Uhma"
+                    className="hover:underline flex items-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    💼 GitHub: github.com/Pawel-Uhma
+                  </a>
                 </div>
               </div>
             </section>

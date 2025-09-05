@@ -6,6 +6,7 @@
   --muted: #64748b;
   --ring: #3b82f6;
   --accent: #2563eb;
+  --accent-dark: #1d4ed8;
   --accent-light: #dbeafe;
   --accent-hover: #1d4ed8;
   --accent-bg: #eff6ff;
@@ -23,6 +24,7 @@
 .bg-elevated { background-color: var(--bg-elev); }
 .bg-panel { background-color: var(--panel); }
 .bg-accent-light { background-color: var(--accent-light); }
+.bg-accent-dark { background-color: var(--accent-dark); }
 .bg-accent-bg { background-color: var(--accent-bg); }
 .text-primary { color: var(--text); }
 .text-muted { color: var(--muted); }
