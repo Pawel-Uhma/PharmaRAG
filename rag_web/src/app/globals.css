@@ -13,10 +13,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
+html, body { height: 100%; }
+html { overflow-x: hidden; }   /* prevent sideways jiggle only */
+body { overflow-y: auto; }     /* keep vertical scrolling */
 
 /* Mobile-specific styles */
 @media (max-width: 640px) {
