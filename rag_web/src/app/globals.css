@@ -16,22 +16,15 @@
 html, body {
   height: 100%;
   overflow: hidden;
-  /* Prevent zoom on mobile devices */
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
 
 /* Mobile-specific styles */
 @media (max-width: 640px) {
   html, body {
     overflow-x: hidden;
-    /* Prevent zoom on double-tap and pinch */
+    /* Prevent zoom on mobile devices only */
     touch-action: manipulation;
+    -webkit-touch-callout: none;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -39,7 +32,7 @@ html, body {
   /* Ensure touch targets are at least 44px */
   button, input, textarea, select {
     min-height: 44px;
-    /* Prevent zoom on focus */
+    /* Prevent zoom on focus - mobile only */
     font-size: 16px;
   }
   
@@ -49,7 +42,7 @@ html, body {
     text-size-adjust: 100%;
   }
   
-  /* Prevent zoom on input focus */
+  /* Prevent zoom on input focus - mobile only */
   input, textarea, select {
     font-size: 16px !important;
     transform: scale(1);
@@ -100,22 +93,21 @@ body {
   user-select: none;
 }
 
-/* Additional zoom prevention */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Prevent zoom on form elements */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-textarea {
-  font-size: 16px !important;
-}
-
-/* Ensure proper scaling on all devices */
-@media screen and (max-width: 768px) {
+/* Mobile-specific zoom prevention */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Prevent zoom on form elements - mobile only */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea {
+    font-size: 16px !important;
+  }
+  
   html {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
