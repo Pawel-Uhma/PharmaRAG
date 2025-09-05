@@ -33,12 +33,10 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [autoSendQuestion, setAutoSendQuestion] = useState<string | null>(null);
 
-  // Initialize suggested questions when component mounts
+  // Initialize and regenerate suggested questions when component mounts or messages change
   useEffect(() => {
-    if (messages.length === 0) {
-      const questions = getRandomQuestions(5);
-      setSuggestedQuestions(questions);
-    }
+    const questions = getRandomQuestions(5);
+    setSuggestedQuestions(questions);
   }, [messages.length]);
 
   // Auto-send when a suggested question is set
@@ -52,9 +50,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   }, [inputText, autoSendQuestion, onSend]);
 
   const handleQuestionClick = (question: string) => {
-    // Clear suggested questions when a question is clicked
-    setSuggestedQuestions([]);
-    
     // Set the auto-send flag and input text
     setAutoSendQuestion(question);
     setInputText(question);
@@ -131,15 +126,13 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 
       {/* Input Area */}
       <div className="flex-shrink-0 border-t border-accent-light bg-panel p-3 sm:p-4 shadow-theme">
-        {/* Show suggested questions only when there are no messages and not on mobile */}
-        {messages.length === 0 && (
-          <div className="hidden sm:block">
-            <SuggestedQuestions
-              questions={suggestedQuestions}
-              onQuestionClick={handleQuestionClick}
-            />
-          </div>
-        )}
+        {/* Show suggested questions at all times above the input */}
+        <div className="hidden sm:block">
+          <SuggestedQuestions
+            questions={suggestedQuestions}
+            onQuestionClick={handleQuestionClick}
+          />
+        </div>
         <ChatInput
           value={inputText}
           onChange={setInputText}
