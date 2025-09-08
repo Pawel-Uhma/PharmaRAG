@@ -131,11 +131,7 @@ function HomeContent() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="app-container flex flex-col bg-primary">
-=======
     <div className="app-container h-screen flex flex-col bg-primary overflow-hidden">
->>>>>>> 6a59beb18831c429a646a1921526996896b3e93f
       <Header 
         activeView={activeView}
         onChatTabClick={handleChatTabClick}
