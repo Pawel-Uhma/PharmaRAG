@@ -1,7 +1,24 @@
 
 Dockerfile
+.dockerignore
 .git
 .gitignore
 README.md
 chroma/
 data/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+node_modules/
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+Thumbs.db

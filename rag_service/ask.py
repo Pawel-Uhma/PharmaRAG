@@ -44,8 +44,20 @@ class OpenAIService:
             logger.info("Embeddings initialized successfully")
             
             logger.info(f"Loading Chroma database from: {CHROMA_PATH}")
-            self.db = Chroma(persist_directory=CHROMA_PATH, embedding_function=self.embedding_function)
-            logger.info("Chroma database loaded successfully")
+            try:
+                self.db = Chroma(persist_directory=CHROMA_PATH, embedding_function=self.embedding_function)
+                logger.info("Chroma database loaded successfully")
+            except Exception as db_error:
+                logger.warning(f"Failed to load existing Chroma database: {str(db_error)}")
+                logger.info("Creating new Chroma database...")
+                # Create a new empty database
+                import shutil
+                import os
+                if os.path.exists(CHROMA_PATH):
+                    shutil.rmtree(CHROMA_PATH)
+                os.makedirs(CHROMA_PATH, exist_ok=True)
+                self.db = Chroma(persist_directory=CHROMA_PATH, embedding_function=self.embedding_function)
+                logger.info("New Chroma database created successfully")
             
             logger.info("Initializing ChatOpenAI model...")
             self.model = ChatOpenAI(api_key=self.api_key, temperature=TEMPERATURE)
