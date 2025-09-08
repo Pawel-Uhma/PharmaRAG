@@ -9,6 +9,7 @@ node_modules
 # data
 **/chroma/
 **/data/
-**/chroma1/
-**/data1/
+# **/chroma1/
+# **/data1/
 .cursor/
+.gitattributes

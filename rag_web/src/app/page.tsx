@@ -131,7 +131,7 @@ function HomeContent() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-primary overflow-hidden">
+    <div className="app-container flex flex-col bg-primary">
       <Header 
         activeView={activeView}
         onChatTabClick={handleChatTabClick}

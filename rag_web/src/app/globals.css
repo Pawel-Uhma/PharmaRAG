@@ -13,14 +13,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html, body { height: 100%; }
-html { overflow-x: hidden; }   /* prevent sideways jiggle only */
-body { overflow-y: auto; }     /* keep vertical scrolling */
+html, body { 
+  height: 100%; 
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrolling on html/body */
+}
 
 /* Mobile-specific styles */
 @media (max-width: 640px) {
   html, body {
-    overflow-x: hidden;
+    overflow: hidden; /* Consistent with main styles */
     /* Prevent zoom on mobile devices only */
     touch-action: manipulation;
     -webkit-touch-callout: none;
@@ -48,14 +51,14 @@ body { overflow-y: auto; }     /* keep vertical scrolling */
   }
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Apply scaling to main app container but prevent overflow */
+.app-container {
+  transform: scale(0.67);
+  transform-origin: top left;
+  width: 149.25%; /* Compensate for scale reduction (100% / 0.67) */
+  height: 149.25%; /* Compensate for scale reduction (100% / 0.67) */
+  overflow: hidden;
 }
-
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -91,9 +94,18 @@ body {
   -ms-user-select: none;
   user-select: none;
 }
-
+/* Tablet scaling for app container */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .app-container {
+    transform: scale(0.6);
+    transform-origin: top left;
+    width: 166.67%; /* Compensate for scale reduction (100% / 0.6) */
+    height: 166.67%; /* Compensate for scale reduction (100% / 0.6) */
+    overflow: hidden;
+  }
+}
 /* Mobile-specific zoom prevention */
-@media (max-width: 768px) {
+ @media (max-width: 768px) {
   * {
     -webkit-tap-highlight-color: transparent;
   }
@@ -112,4 +124,5 @@ body {
     -ms-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
-}
+} 
+
