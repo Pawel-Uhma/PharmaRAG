@@ -30,8 +30,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   onToggleContextPanel
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [autoSendQuestion, setAutoSendQuestion] = useState<string | null>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   // Initialize and regenerate suggested questions when component mounts or messages change
   useEffect(() => {
@@ -56,12 +59,40 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current && shouldAutoScroll) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
+  // Check if user is near bottom of scroll area
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShouldAutoScroll(isNearBottom);
+      setShowScrollButton(!isNearBottom && messages.length > 0);
+    }
+  };
+
+  const handleScrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      setShouldAutoScroll(true);
+      setShowScrollButton(false);
+    }
+  };
+
+  // Only scroll to bottom when new messages are added, not on every render
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > 0) {
+      // Use a small delay to ensure the DOM has updated
+      const timeoutId = setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]); // Only depend on message count, not the entire messages array
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-primary">
@@ -79,7 +110,11 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 min-h-0">
+      <div 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 space-y-3 sm:space-y-4 min-h-0 scroll-smooth"
+      >
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-muted px-4">
@@ -121,6 +156,19 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
             )}
             <div ref={messagesEndRef} />
           </>
+        )}
+        
+        {/* Scroll to bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={handleScrollToBottom}
+            className="fixed bottom-20 right-4 sm:right-8 z-10 p-2 bg-accent text-white rounded-full shadow-lg hover:bg-accent/90 transition-all duration-200 hover:scale-105"
+            title="Scroll to bottom"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
         )}
       </div>
 

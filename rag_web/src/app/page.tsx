@@ -110,16 +110,12 @@ function HomeContent() {
     setActiveView('library');
     // Clear any selected document when switching to library
     // setSelectedDocument(null); // This line is removed as per the edit hint
-    // Scroll to top when switching to library
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleChatTabClick = () => {
     setActiveView('chat');
     // Clear any selected document when switching to chat
     // setSelectedDocument(null); // This line is removed as per the edit hint
-    // Scroll to top when switching to chat
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleInfoClick = () => {
