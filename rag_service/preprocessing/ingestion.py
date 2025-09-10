@@ -12,16 +12,13 @@ import shutil
 import time
 import random
 from pathlib import Path
-from dotenv import load_dotenv
-
 # Try both import locations for Markdown header splitter (depends on langchain version)
 try:
     from langchain.text_splitter import MarkdownHeaderTextSplitter
 except Exception:
     from langchain_text_splitters import MarkdownHeaderTextSplitter  # pip install langchain-text-splitters
 
-env_path = Path(__file__).resolve().parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+# Get API key directly from environment variables (for Docker/App Runner)
 API_KEY = os.getenv('API_KEY')
 openai.api_key = API_KEY
 os.environ["API_KEY"] = API_KEY

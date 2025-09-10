@@ -28,12 +28,8 @@ logger = logging.getLogger(__name__)
 # Constants
 CHROMA_PATH = "chroma"
 TEMPERATURE = 0.2
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get API key
+# Get API key directly from environment variables (for Docker/App Runner)
 API_KEY = os.getenv("API_KEY")
 
 # Log API key status (without exposing the actual key)
