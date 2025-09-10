@@ -210,19 +210,58 @@ async def get_rag_answer(request: RAGRequest):
     Get RAG answer for a given question
     """
     logger.info(f"Received RAG request: {request.question}")
+    logger.info(f"Request type: {type(request)}")
+    logger.info(f"Request question: '{request.question}'")
     
     try:
+        # Check if services are initialized
+        logger.info(f"OpenAI service status: {openai_service is not None}")
         if not openai_service:
-            raise HTTPException(status_code=500, detail="OpenAI service not initialized")
+            error_msg = "OpenAI service not initialized"
+            logger.error(error_msg)
+            raise HTTPException(status_code=500, detail=error_msg)
         
+        # Check API key
+        logger.info(f"API_KEY status: {'Present' if API_KEY else 'Missing'}")
+        if not API_KEY:
+            error_msg = "API_KEY not found in environment variables"
+            logger.error(error_msg)
+            raise HTTPException(status_code=500, detail=error_msg)
+        
+        # Validate question
+        if not request.question or not request.question.strip():
+            error_msg = "Question cannot be empty"
+            logger.error(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        logger.info("Starting RAG query...")
         response_text, sources, metadata = openai_service.query(request.question)
-        logger.info("RAG query completed successfully")
+        logger.info(f"RAG query completed successfully. Response length: {len(response_text) if response_text else 0}")
+        logger.info(f"Sources count: {len(sources) if sources else 0}")
+        logger.info(f"Metadata count: {len(metadata) if metadata else 0}")
+        
         return RAGResponse(response=response_text, sources=sources, metadata=metadata)
-    except HTTPException:
-        logger.warning("HTTPException raised, re-raising")
+        
+    except HTTPException as he:
+        logger.error(f"HTTPException in get_rag_answer: {he.detail} (status: {he.status_code})")
         raise
+    except ValueError as ve:
+        error_msg = f"Value error in RAG query: {str(ve)}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(status_code=400, detail=error_msg)
+    except ConnectionError as ce:
+        error_msg = f"Connection error in RAG query: {str(ce)}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+    except TimeoutError as te:
+        error_msg = f"Timeout error in RAG query: {str(te)}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(status_code=504, detail="Request timeout")
     except Exception as e:
-        logger.error(f"Unexpected error in get_rag_answer: {str(e)}", exc_info=True)
+        error_msg = f"Unexpected error in get_rag_answer: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error args: {e.args}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.options("/rag/answer")
@@ -444,6 +483,29 @@ async def health_check():
     Health check endpoint
     """
     return {"status": "healthy", "service": "PharmaRAG"}
+
+@app.get("/debug/status")
+async def debug_status():
+    """
+    Debug endpoint to check service status
+    """
+    status = {
+        "api_key_present": bool(API_KEY),
+        "openai_service_initialized": openai_service is not None,
+        "medicine_names_service_initialized": medicine_names_service is not None,
+        "chroma_path_exists": Path(CHROMA_PATH).exists(),
+        "chroma_path": CHROMA_PATH,
+        "temperature": TEMPERATURE
+    }
+    
+    if openai_service:
+        try:
+            # Try to get some basic info about the OpenAI service
+            status["openai_service_type"] = type(openai_service).__name__
+        except Exception as e:
+            status["openai_service_error"] = str(e)
+    
+    return status
 
 @app.get("/test-normalize/{text}")
 async def test_normalize(text: str):
