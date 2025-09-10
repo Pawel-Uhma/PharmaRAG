@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_ENDPOINTS } from '../utils/api';
 
 interface PaginatedMedicineNamesResponse {
   names: string[];
@@ -31,8 +32,8 @@ export const useMedicineNames = () => {
       
       const isSearch = query && query.trim() !== '';
       const endpoint = isSearch 
-        ? `http://localhost:8000/medicine-names/search?query=${encodeURIComponent(query!)}&page=${page}&page_size=${pageSize}`
-        : `http://localhost:8000/medicine-names/paginated?page=${page}&page_size=${pageSize}`;
+        ? `${API_ENDPOINTS.MEDICINE_NAMES_SEARCH}?query=${encodeURIComponent(query!)}&page=${page}&page_size=${pageSize}`
+        : `${API_ENDPOINTS.MEDICINE_NAMES_PAGINATED}?page=${page}&page_size=${pageSize}`;
       
       const response = await fetch(endpoint);
       if (!response.ok) {

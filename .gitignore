@@ -13,3 +13,4 @@ node_modules
 # **/data1/
 .cursor/
 .gitattributes
+.dockerignore

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMedicineNames } from './useMedicineNames';
+import { API_ENDPOINTS } from '../utils/api';
 
 export interface DocumentFile {
   name: string;
@@ -48,7 +49,7 @@ export const useCorpora = () => {
       setError(null);
       
       // Fetch the full document when a medicine name is clicked
-      const response = await fetch(`http://localhost:8000/documents/${encodeURIComponent(medicineName)}`);
+      const response = await fetch(API_ENDPOINTS.DOCUMENTS(medicineName));
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

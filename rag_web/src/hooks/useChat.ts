@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Message, RAGResponse, Conversation, ContextPanelState } from '../types';
+import { API_ENDPOINTS } from '../utils/api';
 
 export const useChat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -90,7 +91,7 @@ export const useChat = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/rag/answer', {
+      const response = await fetch(API_ENDPOINTS.RAG_ANSWER, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
