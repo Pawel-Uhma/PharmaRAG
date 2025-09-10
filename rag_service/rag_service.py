@@ -104,14 +104,9 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
-        "https://pharmarag.eu",
-        "https://www.pharmarag.eu"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origins=["*"],  # Temporarily allow all origins for debugging
+    allow_credentials=False,  # Must be False when allow_origins is ["*"]
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -236,6 +231,21 @@ async def options_rag_answer():
     Handle CORS preflight request for /rag/answer
     """
     return {"message": "CORS preflight handled"}
+
+@app.options("/medicine-names/paginated")
+async def options_medicine_names_paginated():
+    """Handle preflight OPTIONS request for paginated medicine names."""
+    return {"message": "OK"}
+
+@app.options("/medicine-names/search")
+async def options_medicine_names_search():
+    """Handle preflight OPTIONS request for medicine names search."""
+    return {"message": "OK"}
+
+@app.options("/documents/{medicine_name}")
+async def options_documents(medicine_name: str):
+    """Handle preflight OPTIONS request for document endpoint."""
+    return {"message": "OK"}
 
 # Medicine Names Endpoints
 @app.get("/medicine-names/paginated", response_model=MedicineNamesResponse)
