@@ -22,6 +22,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Create necessary directories first
+RUN mkdir -p /app/chroma /app/data
+
 # Copy application code
 COPY . .
 
@@ -30,8 +33,8 @@ RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
 USER app
 
-# Create necessary directories
-RUN mkdir -p /app/chroma /app/data
+# Verify chroma directory permissions and contents
+RUN ls -la /app/chroma/ || echo "Chroma directory listing failed"
 
 # Expose port
 EXPOSE 8000

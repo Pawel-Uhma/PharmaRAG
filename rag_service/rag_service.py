@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 CHROMA_PATH = "chroma"
 TEMPERATURE = 0.2
 
+os.environ["API_KEY"] = "REDACTED"
 # Get API key directly from environment variables (for Docker/App Runner)
 API_KEY = os.getenv("API_KEY")
 
@@ -176,17 +177,24 @@ def initialize_services():
     
     try:
         logger.info("Initializing services...")
+        logger.info(f"API_KEY present: {bool(API_KEY)}")
+        logger.info(f"API_KEY length: {len(API_KEY) if API_KEY else 0}")
+        logger.info(f"API_KEY starts with: {API_KEY[:10] if API_KEY and len(API_KEY) > 10 else 'N/A'}")
         
         if not API_KEY:
-            raise ValueError("API_KEY not found in environment variables")
+            error_msg = "API_KEY not found in environment variables"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
         
         # Initialize OpenAI service
+        logger.info("Starting OpenAI service initialization...")
         openai_service = OpenAIService(API_KEY)
-        logger.info("OpenAI service initialized")
+        logger.info("OpenAI service initialized successfully")
         
         # Initialize Medicine Names service
+        logger.info("Starting Medicine Names service initialization...")
         medicine_names_service = MedicineNamesService()
-        logger.info("Medicine Names service initialized")
+        logger.info("Medicine Names service initialized successfully")
         
         logger.info("All services initialized successfully")
         
@@ -487,6 +495,8 @@ async def debug_status():
     """
     status = {
         "api_key_present": bool(API_KEY),
+        "api_key_length": len(API_KEY) if API_KEY else 0,
+        "api_key_prefix": API_KEY[:10] if API_KEY and len(API_KEY) > 10 else "N/A",
         "openai_service_initialized": openai_service is not None,
         "medicine_names_service_initialized": medicine_names_service is not None,
         "chroma_path_exists": Path(CHROMA_PATH).exists(),
@@ -498,10 +508,148 @@ async def debug_status():
         try:
             # Try to get some basic info about the OpenAI service
             status["openai_service_type"] = type(openai_service).__name__
+            status["openai_service_has_embeddings"] = openai_service.embedding_function is not None
+            status["openai_service_has_model"] = openai_service.model is not None
+            status["openai_service_has_db"] = openai_service.db is not None
         except Exception as e:
             status["openai_service_error"] = str(e)
     
     return status
+
+@app.get("/debug/test-openai")
+async def test_openai():
+    """
+    Test endpoint to verify OpenAI API key works
+    """
+    try:
+        if not API_KEY:
+            return {"error": "API_KEY not found"}
+        
+        # Simple test - just try to create embeddings
+        from langchain_openai import OpenAIEmbeddings
+        test_embeddings = OpenAIEmbeddings(api_key=API_KEY)
+        
+        # Try to embed a simple text
+        result = test_embeddings.embed_query("test")
+        
+        return {
+            "status": "success",
+            "api_key_works": True,
+            "embedding_dimension": len(result) if result else 0
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "api_key_works": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
+@app.post("/debug/test-simple-rag")
+async def test_simple_rag():
+    """
+    Test endpoint with minimal RAG processing
+    """
+    try:
+        if not openai_service:
+            return {"error": "OpenAI service not initialized"}
+        
+        # Test just the database search without OpenAI call
+        logger.info("Testing database search...")
+        results = openai_service.db.similarity_search_with_relevance_scores("test question", k=1)
+        logger.info(f"Database search successful, found {len(results)} results")
+        
+        # Test OpenAI model directly
+        logger.info("Testing OpenAI model...")
+        test_response = openai_service.model.predict("Hello, this is a test.")
+        logger.info("OpenAI model test successful")
+        
+        return {
+            "status": "success",
+            "database_results": len(results),
+            "openai_test": "success",
+            "test_response_length": len(test_response) if test_response else 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in test_simple_rag: {str(e)}", exc_info=True)
+        return {
+            "status": "error",
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
+@app.options("/debug/test-simple-rag")
+async def options_test_simple_rag():
+    """Handle preflight OPTIONS request for test endpoint."""
+    return {"message": "OK"}
+
+@app.get("/debug/chroma-info")
+async def debug_chroma_info():
+    """
+    Debug endpoint to check Chroma database information
+    """
+    try:
+        chroma_path = Path(CHROMA_PATH)
+        chroma_info = {
+            "chroma_path": str(chroma_path),
+            "path_exists": chroma_path.exists(),
+            "is_directory": chroma_path.is_dir() if chroma_path.exists() else False,
+            "files": []
+        }
+        
+        if chroma_path.exists():
+            try:
+                chroma_info["files"] = [f.name for f in chroma_path.iterdir()]
+                chroma_info["file_count"] = len(chroma_info["files"])
+            except Exception as e:
+                chroma_info["list_error"] = str(e)
+        
+        # Check if database is accessible
+        if openai_service and openai_service.db:
+            try:
+                # Try to get collection info
+                collection = openai_service.db._collection
+                chroma_info["collection_type"] = type(collection).__name__
+                
+                # Try different ways to get count
+                try:
+                    collection_count = collection.count()
+                    chroma_info["collection_count"] = collection_count
+                except Exception as count_error:
+                    chroma_info["count_error"] = str(count_error)
+                    # Try alternative method
+                    try:
+                        collection_count = len(collection.get())
+                        chroma_info["collection_count"] = collection_count
+                    except Exception as len_error:
+                        chroma_info["len_error"] = str(len_error)
+                        chroma_info["collection_count"] = "unknown"
+                
+                # Try a simple similarity search
+                try:
+                    test_results = openai_service.db.similarity_search("test", k=1)
+                    chroma_info["similarity_search_works"] = True
+                    chroma_info["test_search_results"] = len(test_results)
+                except Exception as search_error:
+                    chroma_info["similarity_search_works"] = False
+                    chroma_info["search_error"] = str(search_error)
+                
+                chroma_info["database_accessible"] = True
+            except Exception as e:
+                chroma_info["database_accessible"] = False
+                chroma_info["database_error"] = str(e)
+        else:
+            chroma_info["database_accessible"] = False
+            chroma_info["database_error"] = "OpenAI service or database not initialized"
+        
+        return chroma_info
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
 @app.get("/test-normalize/{text}")
 async def test_normalize(text: str):

@@ -45,8 +45,25 @@ class OpenAIService:
             
             logger.info(f"Loading Chroma database from: {CHROMA_PATH}")
             try:
-                self.db = Chroma(persist_directory=CHROMA_PATH, embedding_function=self.embedding_function)
+                # Use the newer Chroma API
+                from langchain_community.vectorstores import Chroma
+                self.db = Chroma(
+                    persist_directory=CHROMA_PATH, 
+                    embedding_function=self.embedding_function
+                )
                 logger.info("Chroma database loaded successfully")
+                
+                # Test the database by trying to get collection info
+                try:
+                    collection = self.db._collection
+                    logger.info(f"Collection type: {type(collection)}")
+                    # Try to get count to verify database is working
+                    count = collection.count()
+                    logger.info(f"Database contains {count} documents")
+                except Exception as test_error:
+                    logger.warning(f"Database test failed: {str(test_error)}")
+                    raise Exception(f"Database test failed: {str(test_error)}")
+                    
             except Exception as db_error:
                 logger.warning(f"Failed to load existing Chroma database: {str(db_error)}")
                 logger.info("Creating new Chroma database...")
@@ -56,8 +73,20 @@ class OpenAIService:
                 if os.path.exists(CHROMA_PATH):
                     shutil.rmtree(CHROMA_PATH)
                 os.makedirs(CHROMA_PATH, exist_ok=True)
-                self.db = Chroma(persist_directory=CHROMA_PATH, embedding_function=self.embedding_function)
-                logger.info("New Chroma database created successfully")
+                
+                # Try to create a new database
+                try:
+                    self.db = Chroma(
+                        persist_directory=CHROMA_PATH, 
+                        embedding_function=self.embedding_function
+                    )
+                    logger.info("New Chroma database created successfully")
+                except Exception as create_error:
+                    logger.error(f"Failed to create new Chroma database: {str(create_error)}")
+                    # Last resort: create without persist directory
+                    logger.info("Trying to create in-memory database...")
+                    self.db = Chroma(embedding_function=self.embedding_function)
+                    logger.info("In-memory Chroma database created")
             
             logger.info("Initializing ChatOpenAI model...")
             self.model = ChatOpenAI(api_key=self.api_key, temperature=TEMPERATURE)
@@ -117,6 +146,11 @@ class OpenAIService:
             
         except Exception as e:
             logger.error(f"Error in query function: {str(e)}", exc_info=True)
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error args: {e.args}")
+            logger.error(f"Database status: {self.db is not None}")
+            logger.error(f"Model status: {self.model is not None}")
+            logger.error(f"Embedding function status: {self.embedding_function is not None}")
             raise
     
     def _extract_sources(self, results: List[Tuple]) -> List[Optional[str]]:
@@ -185,15 +219,26 @@ class OpenAIService:
     
     def _generate_response(self, context_text: str, query_text: str) -> str:
         """Generate response using OpenAI model."""
-        prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-        prompt = prompt_template.format(context=context_text, question=query_text)
-        logger.info(f"Prompt length: {len(prompt)} characters")
-        
-        # Log the complete prompt sent to OpenAI
-        logger.info(f"Complete prompt sent to OpenAI: {prompt}")
-        
-        response_text = self.model.predict(prompt)
-        return response_text
+        try:
+            logger.info("Starting response generation...")
+            prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+            prompt = prompt_template.format(context=context_text, question=query_text)
+            logger.info(f"Prompt length: {len(prompt)} characters")
+            
+            # Log the complete prompt sent to OpenAI
+            logger.info(f"Complete prompt sent to OpenAI: {prompt}")
+            
+            logger.info("Calling OpenAI model...")
+            response_text = self.model.predict(prompt)
+            logger.info(f"OpenAI response received, length: {len(response_text) if response_text else 0}")
+            return response_text
+            
+        except Exception as e:
+            logger.error(f"Error in _generate_response: {str(e)}", exc_info=True)
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Model status: {self.model is not None}")
+            logger.error(f"API key present: {bool(self.api_key)}")
+            raise
     
     def _extract_metadata(self, results: List[Tuple]) -> List[Dict]:
         """Extract metadata from search results."""
