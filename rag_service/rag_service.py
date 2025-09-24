@@ -15,11 +15,11 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import uvicorn
 
 # Import our modules
 from ask import OpenAIService
-from medicine_names_service import MedicineNamesService
-import uvicorn
+from utils.medicine_names_service import MedicineNamesService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +32,10 @@ TEMPERATURE = 0.2
 POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/pharmarag')
 COLLECTION_NAME = "pharma_documents"
 
-os.environ["API_KEY"] = "REDACTED"
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 # Get API key directly from environment variables (for Docker/App Runner)
 API_KEY = os.getenv("API_KEY")
 
