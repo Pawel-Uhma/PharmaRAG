@@ -26,8 +26,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-CHROMA_PATH = "chroma"
 TEMPERATURE = 0.2
+
+# PostgreSQL configuration
+POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/pharmarag')
+COLLECTION_NAME = "pharma_documents"
 
 os.environ["API_KEY"] = "REDACTED"
 # Get API key directly from environment variables (for Docker/App Runner)
@@ -499,8 +502,8 @@ async def debug_status():
         "api_key_prefix": API_KEY[:10] if API_KEY and len(API_KEY) > 10 else "N/A",
         "openai_service_initialized": openai_service is not None,
         "medicine_names_service_initialized": medicine_names_service is not None,
-        "chroma_path_exists": Path(CHROMA_PATH).exists(),
-        "chroma_path": CHROMA_PATH,
+        "postgres_connection": POSTGRES_CONNECTION_STRING,
+        "collection_name": COLLECTION_NAME,
         "temperature": TEMPERATURE
     }
     
@@ -584,66 +587,39 @@ async def options_test_simple_rag():
     """Handle preflight OPTIONS request for test endpoint."""
     return {"message": "OK"}
 
-@app.get("/debug/chroma-info")
-async def debug_chroma_info():
+@app.get("/debug/postgres-info")
+async def debug_postgres_info():
     """
-    Debug endpoint to check Chroma database information
+    Debug endpoint to check PostgreSQL database information
     """
     try:
-        chroma_path = Path(CHROMA_PATH)
-        chroma_info = {
-            "chroma_path": str(chroma_path),
-            "path_exists": chroma_path.exists(),
-            "is_directory": chroma_path.is_dir() if chroma_path.exists() else False,
-            "files": []
+        postgres_info = {
+            "connection_string": POSTGRES_CONNECTION_STRING,
+            "collection_name": COLLECTION_NAME,
         }
-        
-        if chroma_path.exists():
-            try:
-                chroma_info["files"] = [f.name for f in chroma_path.iterdir()]
-                chroma_info["file_count"] = len(chroma_info["files"])
-            except Exception as e:
-                chroma_info["list_error"] = str(e)
         
         # Check if database is accessible
         if openai_service and openai_service.db:
             try:
-                # Try to get collection info
-                collection = openai_service.db._collection
-                chroma_info["collection_type"] = type(collection).__name__
-                
-                # Try different ways to get count
-                try:
-                    collection_count = collection.count()
-                    chroma_info["collection_count"] = collection_count
-                except Exception as count_error:
-                    chroma_info["count_error"] = str(count_error)
-                    # Try alternative method
-                    try:
-                        collection_count = len(collection.get())
-                        chroma_info["collection_count"] = collection_count
-                    except Exception as len_error:
-                        chroma_info["len_error"] = str(len_error)
-                        chroma_info["collection_count"] = "unknown"
-                
                 # Try a simple similarity search
                 try:
                     test_results = openai_service.db.similarity_search("test", k=1)
-                    chroma_info["similarity_search_works"] = True
-                    chroma_info["test_search_results"] = len(test_results)
+                    postgres_info["similarity_search_works"] = True
+                    postgres_info["test_search_results"] = len(test_results)
                 except Exception as search_error:
-                    chroma_info["similarity_search_works"] = False
-                    chroma_info["search_error"] = str(search_error)
+                    postgres_info["similarity_search_works"] = False
+                    postgres_info["search_error"] = str(search_error)
                 
-                chroma_info["database_accessible"] = True
+                postgres_info["database_accessible"] = True
+                postgres_info["database_type"] = type(openai_service.db).__name__
             except Exception as e:
-                chroma_info["database_accessible"] = False
-                chroma_info["database_error"] = str(e)
+                postgres_info["database_accessible"] = False
+                postgres_info["database_error"] = str(e)
         else:
-            chroma_info["database_accessible"] = False
-            chroma_info["database_error"] = "OpenAI service or database not initialized"
+            postgres_info["database_accessible"] = False
+            postgres_info["database_error"] = "OpenAI service or database not initialized"
         
-        return chroma_info
+        return postgres_info
         
     except Exception as e:
         return {
@@ -691,16 +667,12 @@ async def root():
 if __name__ == "__main__":
     try:
         logger.info("Starting PharmaRAG Service...")
-        logger.info(f"Chroma path: {CHROMA_PATH}")
+        logger.info(f"PostgreSQL connection: {POSTGRES_CONNECTION_STRING}")
         
         # Validate environment
         if not API_KEY:
             logger.error("API_KEY not found! Please check your .env file.")
             exit(1)
-        
-        # Check if Chroma directory exists
-        if not os.path.exists(CHROMA_PATH):
-            logger.warning(f"Chroma directory {CHROMA_PATH} does not exist. It will be created on first use.")
         
         logger.info("Service starting on http://0.0.0.0:8000")
         uvicorn.run(app, host="0.0.0.0", port=8000)

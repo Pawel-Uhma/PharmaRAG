@@ -7,20 +7,24 @@ import logging
 import os
 from typing import List, Dict, Any, Optional, Tuple
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import Chroma
+from langchain_postgres import PGVector
+from sqlalchemy import create_engine
 from langchain.prompts import ChatPromptTemplate
 
 logger = logging.getLogger(__name__)
 
 # Constants
 TEMPERATURE = 0.2
-CHROMA_PATH = "chroma"
+
+# PostgreSQL configuration
+POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/pharmarag')
+COLLECTION_NAME = "pharma_documents"
 
 PROMPT_TEMPLATE = """
 Odpowiedz na pytanie tylko na podstawie poniższych informacji:
 {context}
 ---
-Odpowiedz na pytanie tylko na podstawie powyższego kontekstu: {question}
+Odpowiedz na pytanie tylko na podstawie kontekstu: {question}
 
 Jeśli w kontekście nie ma istotnych informacji na temat pytania, grzecznie poinformuj o tym użytkownika i zasugeruj, aby zadał pytanie związane z lekami lub farmacją, na które mogę odpowiedzieć na podstawie dostępnych informacji.
 """
@@ -43,50 +47,41 @@ class OpenAIService:
             self.embedding_function = OpenAIEmbeddings(api_key=self.api_key)
             logger.info("Embeddings initialized successfully")
             
-            logger.info(f"Loading Chroma database from: {CHROMA_PATH}")
+            logger.info(f"Loading PostgreSQL database from: {POSTGRES_CONNECTION_STRING}")
             try:
-                # Use the newer Chroma API
-                from langchain_community.vectorstores import Chroma
-                self.db = Chroma(
-                    persist_directory=CHROMA_PATH, 
-                    embedding_function=self.embedding_function
+                # Use PostgreSQL with pgvector
+                self.db = PGVector(
+                    embeddings=self.embedding_function,
+                    connection=POSTGRES_CONNECTION_STRING,
+                    collection_name=COLLECTION_NAME,
                 )
-                logger.info("Chroma database loaded successfully")
+                logger.info("PostgreSQL database loaded successfully")
                 
-                # Test the database by trying to get collection info
+                # Test the database by trying a simple search
                 try:
-                    collection = self.db._collection
-                    logger.info(f"Collection type: {type(collection)}")
-                    # Try to get count to verify database is working
-                    count = collection.count()
-                    logger.info(f"Database contains {count} documents")
+                    # Try a simple similarity search to verify database is working
+                    test_results = self.db.similarity_search("test", k=1)
+                    logger.info(f"Database test successful, found {len(test_results)} test results")
                 except Exception as test_error:
                     logger.warning(f"Database test failed: {str(test_error)}")
                     raise Exception(f"Database test failed: {str(test_error)}")
                     
             except Exception as db_error:
-                logger.warning(f"Failed to load existing Chroma database: {str(db_error)}")
-                logger.info("Creating new Chroma database...")
-                # Create a new empty database
-                import shutil
-                import os
-                if os.path.exists(CHROMA_PATH):
-                    shutil.rmtree(CHROMA_PATH)
-                os.makedirs(CHROMA_PATH, exist_ok=True)
+                logger.warning(f"Failed to load existing PostgreSQL database: {str(db_error)}")
+                logger.info("Creating new PostgreSQL database...")
                 
                 # Try to create a new database
                 try:
-                    self.db = Chroma(
-                        persist_directory=CHROMA_PATH, 
-                        embedding_function=self.embedding_function
+                    self.db = PGVector(
+                        embeddings=self.embedding_function,
+                        connection=POSTGRES_CONNECTION_STRING,
+                        collection_name=COLLECTION_NAME,
+                        pre_delete_collection=True,  # Clear existing collection
                     )
-                    logger.info("New Chroma database created successfully")
+                    logger.info("New PostgreSQL database created successfully")
                 except Exception as create_error:
-                    logger.error(f"Failed to create new Chroma database: {str(create_error)}")
-                    # Last resort: create without persist directory
-                    logger.info("Trying to create in-memory database...")
-                    self.db = Chroma(embedding_function=self.embedding_function)
-                    logger.info("In-memory Chroma database created")
+                    logger.error(f"Failed to create new PostgreSQL database: {str(create_error)}")
+                    raise create_error
             
             logger.info("Initializing ChatOpenAI model...")
             self.model = ChatOpenAI(api_key=self.api_key, temperature=TEMPERATURE)

@@ -1,0 +1,82 @@
+2025-09-24 16:54:17,846 - INFO - ================================================================================
+2025-09-24 16:54:17,846 - INFO - STARTING PHARMARAG DATABASE INGESTION TESTS
+2025-09-24 16:54:17,846 - INFO - ================================================================================
+2025-09-24 16:54:17,846 - INFO - 
+==================== ENVIRONMENT VARIABLES ====================
+2025-09-24 16:54:17,904 - INFO - 
+==================== DATABASE CONNECTIVITY ====================
+2025-09-24 16:54:47,896 - INFO - 
+==================== POSTGRESQL EXTENSIONS ====================
+2025-09-24 16:54:48,239 - INFO - 
+==================== VECTOR STORE INITIALIZATION ====================
+2025-09-24 16:54:54,559 - INFO - 
+==================== DOCUMENT COUNT CHECK ====================
+2025-09-24 16:54:57,805 - INFO - 
+==================== VECTOR EMBEDDINGS TEST ====================
+2025-09-24 16:55:00,260 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:55:03,472 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:56:36,837 - INFO - ================================================================================
+2025-09-24 16:56:36,837 - INFO - STARTING PHARMARAG DATABASE INGESTION TESTS
+2025-09-24 16:56:36,837 - INFO - ================================================================================
+2025-09-24 16:56:36,837 - INFO - 
+==================== ENVIRONMENT VARIABLES ====================
+2025-09-24 16:56:36,837 - INFO - [PASS] Environment Variables: PASSED
+2025-09-24 16:56:36,837 - INFO - 
+==================== DATABASE CONNECTIVITY ====================
+2025-09-24 16:56:38,227 - INFO - [PASS] Database Connectivity: PASSED
+2025-09-24 16:56:38,227 - INFO - 
+==================== POSTGRESQL EXTENSIONS ====================
+2025-09-24 16:56:38,486 - INFO - [PASS] PostgreSQL Extensions: PASSED
+2025-09-24 16:56:38,486 - INFO - 
+==================== VECTOR STORE INITIALIZATION ====================
+2025-09-24 16:56:42,609 - INFO - [PASS] Vector Store Initialization: PASSED
+2025-09-24 16:56:42,609 - INFO - 
+==================== DOCUMENT COUNT CHECK ====================
+2025-09-24 16:56:45,305 - INFO - [PASS] Document Count Check: PASSED
+2025-09-24 16:56:45,305 - INFO - 
+==================== VECTOR EMBEDDINGS TEST ====================
+2025-09-24 16:56:45,984 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:56:46,962 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:04,521 - INFO - [PASS] Vector Embeddings Test: PASSED
+2025-09-24 16:58:04,523 - INFO - 
+==================== SEARCH FUNCTIONALITY ====================
+2025-09-24 16:58:04,892 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:07,109 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:09,153 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:11,181 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:13,792 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:15,920 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:18,191 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:20,280 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:22,499 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:24,567 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:26,386 - INFO - [PASS] Search Functionality: PASSED
+2025-09-24 16:58:26,402 - INFO - 
+==================== SAMPLE DOCUMENT RETRIEVAL ====================
+2025-09-24 16:58:26,671 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:29,113 - INFO - [PASS] Sample Document Retrieval: PASSED
+2025-09-24 16:58:29,154 - INFO - 
+==================== DATA DIRECTORY CHECK ====================
+2025-09-24 16:58:45,437 - INFO - [PASS] Data Directory Check: PASSED
+2025-09-24 16:58:45,442 - INFO - 
+==================== PERFORMANCE METRICS ====================
+2025-09-24 16:58:46,096 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:48,343 - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-09-24 16:58:48,443 - INFO - [PASS] Performance Metrics: PASSED
+2025-09-24 16:58:48,601 - INFO - 
+================================================================================
+2025-09-24 16:58:48,664 - INFO - TEST SUMMARY
+2025-09-24 16:58:48,685 - INFO - ================================================================================
+2025-09-24 16:58:48,687 - INFO - Total Tests: 10
+2025-09-24 16:58:48,722 - INFO - Passed: 10
+2025-09-24 16:58:48,793 - INFO - Failed: 0
+2025-09-24 16:58:48,906 - INFO - Success Rate: 100.0%
+2025-09-24 16:58:48,959 - INFO - Total Execution Time: 131.76 seconds
+2025-09-24 16:58:48,965 - INFO - 
+[SUCCESS] ALL TESTS PASSED! Database is online and properly ingested.
+2025-09-24 16:58:49,022 - INFO - 
+KEY METRICS:
+2025-09-24 16:58:49,065 - INFO -   [DOCS] Documents in database: 133730
+2025-09-24 16:58:49,076 - INFO -   [SEARCH] Successful search queries: 5
+2025-09-24 16:58:49,129 - INFO -   [PERF] Average search time: 2.648s
+2025-09-24 16:58:49,199 - INFO - ================================================================================

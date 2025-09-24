@@ -12,5 +12,6 @@ node_modules
 # **/chroma1/
 # **/data1/
 .cursor/
+.cursorignore
 .gitattributes
 .dockerignore

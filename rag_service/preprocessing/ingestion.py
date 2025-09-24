@@ -4,7 +4,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 # from langchain.embeddings import OpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_postgres import PGVector
+from sqlalchemy import create_engine
 import openai
 import os
 import re
@@ -12,27 +13,39 @@ import shutil
 import time
 import random
 from pathlib import Path
+from dotenv import load_dotenv
 # Try both import locations for Markdown header splitter (depends on langchain version)
 try:
     from langchain.text_splitter import MarkdownHeaderTextSplitter
 except Exception:
     from langchain_text_splitters import MarkdownHeaderTextSplitter  # pip install langchain-text-splitters
 
+# Load environment variables from config.env file
+load_dotenv('.env')
+
 # Get API key directly from environment variables (for Docker/App Runner)
 API_KEY = os.getenv('API_KEY')
 openai.api_key = API_KEY
 os.environ["API_KEY"] = API_KEY
 
-CHROMA_PATH = "chroma"
-DATA_PATH = "data"
+# Configuration from environment variables
+DATA_PATH = os.getenv('DATA_PATH', 'data')
+POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL')
+COLLECTION_NAME = os.getenv('COLLECTION_NAME', 'pharma_documents')
 
 def main():
+    # Validate required environment variables
+    if not API_KEY:
+        raise ValueError("Missing required API_KEY environment variable")
+    if not POSTGRES_CONNECTION_STRING:
+        raise ValueError("Missing required DATABASE_URL environment variable")
+    
     generate_data_store()
 
 def generate_data_store():
     documents = load_documents()
     chunks = split_text_by_markdown_headers(documents)
-    save_to_chroma(chunks)
+    save_to_postgres(chunks)
 
 def load_documents():
     """
@@ -159,7 +172,7 @@ def estimate_tokens(text: str) -> int:
 
 def add_documents_with_retry(db, batch, max_retries=5, base_delay=1):
     """
-    Add documents to Chroma with retry logic for network errors.
+    Add documents to PostgreSQL with retry logic for network errors.
     """
     for attempt in range(max_retries):
         try:
@@ -202,57 +215,28 @@ def add_documents_with_retry(db, batch, max_retries=5, base_delay=1):
                 print(f"Final attempt failed: {str(e)}")
                 raise e
 
-def save_to_chroma(chunks: list[Document]):
-    # Check if database already exists
-    db_exists = os.path.exists(CHROMA_PATH)
+def save_to_postgres(chunks: list[Document]):
+    """Save documents to PostgreSQL with pgvector extension."""
+    print(f"Connecting to PostgreSQL database...")
     
-    if db_exists:
-        print(f"Chroma database already exists at {CHROMA_PATH}")
-        response = input("Do you want to clear and rebuild? (y/n): ").lower().strip()
-        if response == 'y':
-            shutil.rmtree(CHROMA_PATH)
-            db_exists = False
-            print("Cleared existing database.")
-        else:
-            print("Using existing database. Add new documents...")
-            # Load existing database
-            embeddings = OpenAIEmbeddings(api_key=API_KEY)
-            db = Chroma(
-                persist_directory=CHROMA_PATH,
-                embedding_function=embeddings,
-            )
-            # Add all chunks to existing database
-            batch_size = 50
-            total_chunks = len(chunks)
-            print(f"Adding {total_chunks} chunks to existing database in batches of {batch_size}...")
-            
-            for i in range(0, total_chunks, batch_size):
-                end_idx = min(i + batch_size, total_chunks)
-                batch = chunks[i:end_idx]
-                
-                print(f"Processing batch {i//batch_size + 1}/{(total_chunks + batch_size - 1)//batch_size} ({len(batch)} chunks)")
-                
-                try:
-                    add_documents_with_retry(db, batch)
-                    print(f"Successfully processed batch {i//batch_size + 1}")
-                except Exception as e:
-                    print(f"Failed to process batch {i//batch_size + 1}: {str(e)}")
-                    continue
-            
-            try:
-                db.persist()
-                print(f"Added {total_chunks} chunks to existing database.")
-            except Exception as e:
-                print(f"Failed to persist database: {str(e)}")
-                raise e
-            return
-    
-    # Clear out the database first (fresh build)
-    if os.path.exists(CHROMA_PATH):
-        shutil.rmtree(CHROMA_PATH)
-    
-    # Initialize embeddings and Chroma
+    # Initialize embeddings
     embeddings = OpenAIEmbeddings(api_key=API_KEY)
+    
+    # Create database engine
+    engine = create_engine(POSTGRES_CONNECTION_STRING)
+    
+    try:
+        # Create PGVector store
+        db = PGVector(
+            embeddings=embeddings,
+            connection=POSTGRES_CONNECTION_STRING,
+            collection_name=COLLECTION_NAME,
+            pre_delete_collection=True,  # Clear existing collection
+        )
+        print("Successfully initialized PostgreSQL database")
+    except Exception as e:
+        print(f"Failed to initialize PostgreSQL database: {str(e)}")
+        raise e
     
     # Process chunks in batches to avoid token limit
     batch_size = 50  # Reduced batch size for better reliability
@@ -260,19 +244,15 @@ def save_to_chroma(chunks: list[Document]):
     
     print(f"Processing {total_chunks} chunks in batches of {batch_size}...")
     
-    # Initialize Chroma with first batch
+    # Initialize PGVector with first batch
     first_batch = chunks[:batch_size]
-    print("Initializing Chroma with first batch...")
+    print("Adding first batch to PostgreSQL...")
     
     try:
-        db = Chroma.from_documents(
-            first_batch,
-            embeddings,
-            persist_directory=CHROMA_PATH,
-        )
-        print("Successfully initialized Chroma database")
+        db.add_documents(first_batch)
+        print("Successfully added first batch to PostgreSQL")
     except Exception as e:
-        print(f"Failed to initialize Chroma: {str(e)}")
+        print(f"Failed to add first batch: {str(e)}")
         raise e
     
     # Process remaining chunks in batches
@@ -296,13 +276,8 @@ def save_to_chroma(chunks: list[Document]):
             # Continue with next batch instead of failing completely
             continue
     
-    try:
-        db.persist()
-        print(f"Saved {total_chunks} chunks to {CHROMA_PATH}.")
-        print(f"Summary: {successful_batches} successful batches, {failed_batches} failed batches")
-    except Exception as e:
-        print(f"Failed to persist database: {str(e)}")
-        raise e
+    print(f"Saved {total_chunks} chunks to PostgreSQL database.")
+    print(f"Summary: {successful_batches} successful batches, {failed_batches} failed batches")
 
 if __name__ == "__main__":
     main()
