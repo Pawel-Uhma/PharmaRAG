@@ -1,5 +1,5 @@
-# Use Python 3.11 slim image for better performance and smaller size
-FROM python:3.11-slim
+# Use Python 3.11 Alpine image for better performance and smaller size
+FROM python:3.11-alpine
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -10,10 +10,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apk update && apk add --no-cache \
     gcc \
     g++ \
-    && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    postgresql-dev \
+    postgresql-client \
+    curl
 
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
@@ -23,18 +26,15 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Create necessary directories first
-RUN mkdir -p /app/chroma /app/data
+RUN mkdir -p /app/data
 
 # Copy application code
 COPY . .
 
 # Create non-root user for security
-RUN useradd --create-home --shell /bin/bash app && \
+RUN adduser -D -s /bin/sh app && \
     chown -R app:app /app
 USER app
-
-# Verify chroma directory permissions and contents
-RUN ls -la /app/chroma/ || echo "Chroma directory listing failed"
 
 # Expose port
 EXPOSE 8000

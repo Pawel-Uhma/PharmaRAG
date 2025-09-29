@@ -11,7 +11,7 @@ import logging
 from dotenv import load_dotenv
 
 # Load environment variables from config.env file
-load_dotenv('.env')
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

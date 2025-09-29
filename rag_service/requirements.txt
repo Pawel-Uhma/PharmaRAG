@@ -6,7 +6,7 @@ langchain-openai==0.1.23
 langchain-community==0.2.16
 langchain-postgres==0.0.12
 openai>=1.10.0
-psycopg[binary]==3.1.18
+psycopg2-binary==2.9.9
 pgvector>=0.2.5,<0.3.0
 sqlalchemy==2.0.23
 urllib3<2

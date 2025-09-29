@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 TEMPERATURE = 0.2
 
 # PostgreSQL configuration
-POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/pharmarag')
+from dotenv import load_dotenv
+load_dotenv()
+POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL')
 COLLECTION_NAME = "pharma_documents"
 
 from dotenv import load_dotenv
@@ -199,7 +201,7 @@ def initialize_services():
         
         # Initialize Medicine Names service
         logger.info("Starting Medicine Names service initialization...")
-        medicine_names_service = MedicineNamesService()
+        medicine_names_service = MedicineNamesService("utils/medicine_names_minimal.json")
         logger.info("Medicine Names service initialized successfully")
         
         logger.info("All services initialized successfully")
@@ -219,6 +221,7 @@ async def get_rag_answer(request: RAGRequest):
     """
     Get RAG answer for a given question
     """
+    request_start_time = time.time()
     logger.info(f"Received RAG request: {request.question}")
     logger.info(f"Request type: {type(request)}")
     logger.info(f"Request question: '{request.question}'")
@@ -245,10 +248,17 @@ async def get_rag_answer(request: RAGRequest):
             raise HTTPException(status_code=400, detail=error_msg)
         
         logger.info("Starting RAG query...")
+        rag_query_start_time = time.time()
         response_text, sources, metadata = openai_service.query(request.question)
+        rag_query_end_time = time.time()
+        
+        total_request_time = time.time() - request_start_time
+        rag_query_time = rag_query_end_time - rag_query_start_time
+        
         logger.info(f"RAG query completed successfully. Response length: {len(response_text) if response_text else 0}")
         logger.info(f"Sources count: {len(sources) if sources else 0}")
         logger.info(f"Metadata count: {len(metadata) if metadata else 0}")
+        logger.info(f"TIMING: Total request time: {total_request_time:.3f}s, RAG query time: {rag_query_time:.3f}s")
         
         return RAGResponse(response=response_text, sources=sources, metadata=metadata)
         
@@ -309,14 +319,22 @@ async def get_paginated_medicine_names(page: int = 1, page_size: int = 20):
     Returns:
         Paginated list of medicine names with pagination metadata
     """
+    request_start_time = time.time()
     logger.info(f"Received medicine names request: page={page}, page_size={page_size}")
     
     try:
         if not medicine_names_service:
             raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
         
+        service_start_time = time.time()
         result = medicine_names_service.get_paginated_names(page=page, page_size=page_size)
+        service_end_time = time.time()
+        
+        total_time = time.time() - request_start_time
+        service_time = service_end_time - service_start_time
+        
         logger.info("Medicine names pagination completed successfully")
+        logger.info(f"TIMING: Total request time: {total_time:.3f}s, Service time: {service_time:.3f}s")
         return MedicineNamesResponse(**result)
         
     except HTTPException:
@@ -339,6 +357,7 @@ async def search_medicine_names(query: str, page: int = 1, page_size: int = 20):
     Returns:
         Filtered and paginated list of medicine names with pagination metadata
     """
+    request_start_time = time.time()
     # Import urllib.parse for URL decoding
     from urllib.parse import unquote
     
@@ -351,8 +370,15 @@ async def search_medicine_names(query: str, page: int = 1, page_size: int = 20):
         if not medicine_names_service:
             raise HTTPException(status_code=500, detail="Medicine Names service not initialized")
         
+        service_start_time = time.time()
         result = medicine_names_service.search_names(query=decoded_query, page=page, page_size=page_size)
+        service_end_time = time.time()
+        
+        total_time = time.time() - request_start_time
+        service_time = service_end_time - service_start_time
+        
         logger.info("Medicine names search completed successfully")
+        logger.info(f"TIMING: Total request time: {total_time:.3f}s, Service time: {service_time:.3f}s")
         return MedicineNamesSearchResponse(**result)
         
     except HTTPException:
@@ -399,6 +425,7 @@ async def get_document(medicine_name: str):
     Returns:
         Document information including content, metadata, and source
     """
+    request_start_time = time.time()
     logger.info(f"Received document request for medicine: {medicine_name}")
     
     try:
@@ -417,10 +444,14 @@ async def get_document(medicine_name: str):
         document_file = None
         
         # Normalize the requested medicine name
+        normalization_start_time = time.time()
         normalized_requested_name = normalize_document_name(decoded_medicine_name)
+        normalization_end_time = time.time()
         logger.info(f"Normalized requested name: '{decoded_medicine_name}' -> '{normalized_requested_name}'")
+        logger.info(f"TIMING: Name normalization time: {normalization_end_time - normalization_start_time:.3f}s")
         
         # Match against normalized filenames
+        file_search_start_time = time.time()
         for file_path in data_dir.glob("*.md"):
             # Extract medicine name from filename (remove .md extension and replace underscores with spaces)
             file_medicine_name = file_path.stem.replace('_', ' ')
@@ -433,15 +464,21 @@ async def get_document(medicine_name: str):
             if normalized_filename == normalized_requested_name:
                 document_file = file_path
                 break
+        file_search_end_time = time.time()
+        logger.info(f"TIMING: File search time: {file_search_end_time - file_search_start_time:.3f}s")
         
         if not document_file:
             raise HTTPException(status_code=404, detail=f"Document not found for medicine: {decoded_medicine_name}")
         
         # Read the document content
+        file_read_start_time = time.time()
         with open(document_file, 'r', encoding='utf-8') as f:
             content = f.read()
+        file_read_end_time = time.time()
+        logger.info(f"TIMING: File read time: {file_read_end_time - file_read_start_time:.3f}s")
         
         # Parse the content to extract metadata
+        parsing_start_time = time.time()
         lines = content.split('\n')
         h1 = None
         h2 = None
@@ -465,6 +502,8 @@ async def get_document(medicine_name: str):
                         source = next_line.split('http')[1].strip()
                         if not source.startswith('s://'):
                             source = 'http' + source
+        parsing_end_time = time.time()
+        logger.info(f"TIMING: Content parsing time: {parsing_end_time - parsing_start_time:.3f}s")
         
         # Create response object
         document_response = DocumentResponse(
@@ -476,7 +515,9 @@ async def get_document(medicine_name: str):
             content=content
         )
         
+        total_time = time.time() - request_start_time
         logger.info(f"Document loaded successfully for: {decoded_medicine_name}")
+        logger.info(f"TIMING: Total document request time: {total_time:.3f}s")
         return document_response
         
     except HTTPException:

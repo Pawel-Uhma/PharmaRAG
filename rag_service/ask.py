@@ -5,11 +5,13 @@ Handles embeddings, model initialization, and RAG query processing.
 
 import logging
 import os
+import time
 from typing import List, Dict, Any, Optional, Tuple
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_postgres import PGVector
 from sqlalchemy import create_engine
 from langchain.prompts import ChatPromptTemplate
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,9 @@ logger = logging.getLogger(__name__)
 TEMPERATURE = 0.2
 
 # PostgreSQL configuration
-POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost:5432/pharmarag')
+from dotenv import load_dotenv
+load_dotenv()
+POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL')
 COLLECTION_NAME = "pharma_documents"
 
 PROMPT_TEMPLATE = """
@@ -101,19 +105,27 @@ class OpenAIService:
         Returns:
             Tuple of (response_text, sources, metadata)
         """
+        query_start_time = time.time()
         logger.info(f"Processing query: {query_text}")
         
         try:
             # Search the database
             logger.info(f"Searching database with k=3...")
+            db_search_start_time = time.time()
             results = self.db.similarity_search_with_relevance_scores(query_text, k=3)
+            db_search_end_time = time.time()
+            db_search_time = db_search_end_time - db_search_start_time
+            
             logger.info(f"Found {len(results)} results")
+            logger.info(f"TIMING: Database search time: {db_search_time:.3f}s")
             
             # Check if we have any results and if the best score is reasonable
             has_relevant_results = len(results) > 0 and results[0][1] >= 0.7
             
             logger.info(f"Relevance threshold: 0.7, Best score: {results[0][1] if results else 'no results'}")
             
+            # Format context
+            context_start_time = time.time()
             if not has_relevant_results:
                 logger.warning(f"No relevant results found. Best score: {results[0][1] if results else 'no results'}")
                 # Create fallback context
@@ -122,20 +134,30 @@ class OpenAIService:
             else:
                 context_text = self._format_context(results)
                 logger.info(f"Context length: {len(context_text)} characters")
+            context_end_time = time.time()
+            context_time = context_end_time - context_start_time
+            logger.info(f"TIMING: Context formatting time: {context_time:.3f}s")
 
             # Generate response
             response_text = self._generate_response(context_text, query_text)
             logger.info(f"Response generated, length: {len(response_text)} characters")
 
             # Extract sources and metadata
+            extraction_start_time = time.time()
             if has_relevant_results:
                 sources = self._extract_sources(results)
                 metadata = self._extract_metadata(results)
             else:
                 sources = []
                 metadata = []
+            extraction_end_time = time.time()
+            extraction_time = extraction_end_time - extraction_start_time
+            logger.info(f"TIMING: Source/metadata extraction time: {extraction_time:.3f}s")
                 
             logger.info(f"Sources: {sources}")
+            
+            total_query_time = time.time() - query_start_time
+            logger.info(f"TIMING: Total query processing time: {total_query_time:.3f}s")
             
             return response_text, sources, metadata
             
@@ -214,18 +236,40 @@ class OpenAIService:
     
     def _generate_response(self, context_text: str, query_text: str) -> str:
         """Generate response using OpenAI model."""
+        response_start_time = time.time()
         try:
             logger.info("Starting response generation...")
+            
+            # Create prompt
+            prompt_creation_start_time = time.time()
             prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
             prompt = prompt_template.format(context=context_text, question=query_text)
+            prompt_creation_end_time = time.time()
+            prompt_creation_time = prompt_creation_end_time - prompt_creation_start_time
+            
             logger.info(f"Prompt length: {len(prompt)} characters")
+            logger.info(f"TIMING: Prompt creation time: {prompt_creation_time:.3f}s")
             
-            # Log the complete prompt sent to OpenAI
-            logger.info(f"Complete prompt sent to OpenAI: {prompt}")
+            # Log the complete prompt sent to OpenAI with better formatting
+            logger.info("=" * 80)
+            logger.info("COMPLETE PROMPT SENT TO OPENAI:")
+            logger.info("=" * 80)
+            logger.info(prompt)
+            logger.info("=" * 80)
             
+            # Call OpenAI model
             logger.info("Calling OpenAI model...")
+            openai_call_start_time = time.time()
             response_text = self.model.predict(prompt)
+            openai_call_end_time = time.time()
+            openai_call_time = openai_call_end_time - openai_call_start_time
+            
             logger.info(f"OpenAI response received, length: {len(response_text) if response_text else 0}")
+            logger.info(f"TIMING: OpenAI API call time: {openai_call_time:.3f}s")
+            
+            total_response_time = time.time() - response_start_time
+            logger.info(f"TIMING: Total response generation time: {total_response_time:.3f}s")
+            
             return response_text
             
         except Exception as e:
