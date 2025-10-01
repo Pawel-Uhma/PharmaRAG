@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const PROD = false;
+const PROD = true;
 
 const nextConfig: NextConfig = {
   env: {
