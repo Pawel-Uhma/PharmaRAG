@@ -106,13 +106,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
+# Add CORS middleware - Updated to be more explicit
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporarily allow all origins for debugging
-    allow_credentials=False,  # Must be False when allow_origins is ["*"]
-    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
+    allow_origins=[
+        "https://pharmarag.eu",
+        "https://www.pharmarag.eu",
+        "http://localhost:3000",
+        "http://localhost:3001",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Add a test endpoint to verify CORS
@@ -162,16 +169,33 @@ class DocumentResponse(BaseModel):
 openai_service = None
 medicine_names_service = None
 
-# Middleware to log all requests
+# Middleware to log all requests and ensure CORS headers
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     
     # Log request details
     logger.info(f"Request: {request.method} {request.url}")
+    logger.info(f"Request origin: {request.headers.get('origin', 'no origin header')}")
     
     # Process the request
     response = await call_next(request)
+    
+    # Explicitly add CORS headers as a fallback (in case middleware doesn't work)
+    origin = request.headers.get("origin")
+    allowed_origins = [
+        "https://pharmarag.eu",
+        "https://www.pharmarag.eu",
+        "http://localhost:3000",
+        "http://localhost:3001",
+    ]
+    
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
     
     # Log response details
     process_time = time.time() - start_time

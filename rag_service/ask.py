@@ -24,14 +24,65 @@ load_dotenv()
 POSTGRES_CONNECTION_STRING = os.getenv('DATABASE_URL')
 COLLECTION_NAME = "pharma_documents"
 
-PROMPT_TEMPLATE = """
-Odpowiedz na pytanie tylko na podstawie poniższych informacji:
-{context}
----
-Odpowiedz na pytanie tylko na podstawie kontekstu: {question}
+# PROMPT_TEMPLATE = """
+# Odpowiedz na pytanie tylko na podstawie poniższych informacji:
+# {context}
+# ---
+# Odpowiedz na pytanie tylko na podstawie kontekstu: {question}
 
-Jeśli w kontekście nie ma istotnych informacji na temat pytania, grzecznie poinformuj o tym użytkownika i zasugeruj, aby zadał pytanie związane z lekami lub farmacją, na które mogę odpowiedzieć na podstawie dostępnych informacji.
+# Jeśli w kontekście nie ma istotnych informacji na temat pytania, grzecznie poinformuj o tym użytkownika i zasugeruj, aby zadał pytanie związane z lekami lub farmacją, na które mogę odpowiedzieć na podstawie dostępnych informacji.
+# """
+
+PROMPT_TEMPLATE = """
+Jesteś asystentem farmaceutycznym. Odpowiadasz WYŁĄCZNIE na podstawie dostarczonego kontekstu.
+
+# Zasady
+- Jeśli kontekst nie zawiera odpowiedzi: napisz krótko, że brak danych w materiałach i zaproponuj pytanie związane z lekami/farmacją.
+- Nie zgaduj, nie korzystaj z wiedzy spoza kontekstu.
+- Używaj precyzyjnych liczb i jednostek, cytuj źródła.
+- Jeżeli odpowiedź zależy od warunków (np. wiek, niewydolność nerek), wskaż warunki i różnice dawek, ale nadal trzymaj się kontekstu.
+- Pisz po polsku, zrozumiale dla odbiorcy nie-technicznego.
+
+# Fuzzy dopasowanie nazwy leku
+- Jeśli nazwa podana przez użytkownika jest **bardzo podobna** do nazwy w kontekście (literówka, odmiana, skrót, nazwa handlowa vs substancja czynna):
+  - Gdy istnieje **jedno wyraźne dopasowanie**, odpowiedz normalnie, ale rozpocznij od adnotacji:
+    **„Wygląda na to, że chodzi o: <NAZWA_Z_KONTEKSTU>. Poniżej informacje dla <NAZWA_Z_KONTEKSTU>.”**
+  - Gdy są **2–3 możliwe dopasowania**, **nie podawaj dawki**; wypisz listę kandydatów i poproś o doprecyzowanie.
+  - Gdy **brak sensownego dopasowania**, powiedz wprost, że nie znaleziono leku w kontekście.
+
+# Przykład dopasowania nazwy (tylko jako wskazówka stylu)
+Użytkownik: „Jaka jest dawka vitis”
+Kontekst zawiera lek „Vitis Gingivalis”.
+Odpowiedź powinna zacząć się tak:
+„Wygląda na to, że chodzi o: Vitis Gingivalis. Poniżej informacje dla Vitis Gingivalis: …” 
+(Reszta odpowiedzi zgodnie z zasadami i tylko z kontekstu.)
+
+# Wejście użytkownika
+Pytanie: {question}
+
+# Kontekst (fragmenty źródeł)
+{context}
+
+# Instrukcje formatowania odpowiedzi
+Zwróć odpowiedź w tej postaci:
+
+**Odpowiedź**
+<krótka, jednoznaczna odpowiedź oparta tylko na kontekście>
+
+**Uzasadnienie (skrót)**
+<1–3 zdania: na czym w kontekście ją opierasz>
+
+**Źródła**
+- <tytuł/plik 1, sekcja jeśli jest>
+- <tytuł/plik 2, sekcja jeśli jest>
+
+Jeśli brak wystarczających informacji:
+**Brak danych w kontekście**
+<krótko wyjaśnij czego brakuje i zaproponuj, o co zapytać dalej>
 """
+
+
+
 
 class OpenAIService:
     """Service class for OpenAI interactions."""
@@ -229,6 +280,30 @@ class OpenAIService:
             header = "\n".join(header_lines)
 
             body = doc.page_content.strip()
+            
+            # Debug logging to understand what's in the document
+            logger.info(f"DEBUG - Document metadata: {doc.metadata}")
+            logger.info(f"DEBUG - Document page_content length: {len(body)}")
+            logger.info(f"DEBUG - Document page_content preview: {body[:1000]}...")
+            
+            # Check if the content is meaningful (not just headers or too short)
+            if len(body) < 50:
+                logger.warning(f"DEBUG - Content appears to be too short: '{body[:100]}...'")
+                # Try to get more meaningful content from other metadata fields
+                if 'content' in doc.metadata and doc.metadata['content']:
+                    body = doc.metadata['content']
+                    logger.info(f"DEBUG - Using content from metadata: {body[:200]}...")
+                elif 'text' in doc.metadata and doc.metadata['text']:
+                    body = doc.metadata['text']
+                    logger.info(f"DEBUG - Using text from metadata: {body[:200]}...")
+                else:
+                    logger.warning(f"DEBUG - No meaningful content found, keeping original: {body[:100]}...")
+            
+            # Ensure we have some meaningful content
+            if not body or len(body) < 20:
+                body = "Informacje o tym preparacie nie są dostępne w bazie danych."
+                logger.warning("DEBUG - Using fallback message due to insufficient content")
+            
             return f"{header}\n{body}"
 
         context_text = "\n\n---\n\n".join([_fmt_chunk(doc) for doc, _score in results])

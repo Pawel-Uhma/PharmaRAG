@@ -7,6 +7,7 @@ interface ContextPanelProps {
   state: ContextPanelState;
   onStateChange: (state: ContextPanelState) => void;
   currentMessage?: Message;
+  allMessages?: Message[];
   sources?: Source[];
   onSourceClick?: (source: Source) => void;
 }
@@ -15,6 +16,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   state,
   onStateChange,
   currentMessage,
+  allMessages = [],
   sources = [],
   onSourceClick
 }) => {
@@ -96,45 +98,73 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     </div>
   );
 
-  const renderHistoryTab = () => (
-    <div className="space-y-4">
-      {currentMessage?.metadata ? (
-        <div className="p-4 rounded-theme border border-accent-light bg-accent-bg shadow-theme">
-          <h4 className="font-medium text-accent mb-3">Metadane odpowiedzi</h4>
-          <div className="space-y-2 text-sm">
-            {currentMessage.metadata.processingTime && (
-              <div>
-                <span className="text-accent/80">Czas przetwarzania:</span> {currentMessage.metadata.processingTime}ms
-              </div>
-            )}
-            {currentMessage.metadata.documentMetadata && currentMessage.metadata.documentMetadata.length > 0 && (
-              <div>
-                <span className="text-accent/80">Użyte dokumenty:</span>
-                <div className="mt-2 space-y-2">
-                  {currentMessage.metadata.documentMetadata.map((doc, index) => (
-                    <div key={index} className="pl-3 border-l-2 border-accent">
-                      <div className="text-xs text-accent font-medium">{doc.h1}</div>
-                      {doc.h2 && <div className="text-xs text-accent/80">{doc.h2}</div>}
-                      <div className="text-xs text-accent/80">Wynik: {Math.round(doc.relevance_score * 100)}%</div>
-                      {doc.chunk_content && (
-                        <div className="mt-1 text-xs text-accent/80 bg-accent-light/50 p-1 rounded">
-                          {doc.chunk_content}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
+  const renderHistoryTab = () => {
+    // Get all messages with metadata (bot responses)
+    const messagesWithMetadata = allMessages.filter(msg => !msg.isUser && msg.metadata?.documentMetadata);
+    
+    if (messagesWithMetadata.length === 0) {
+      return (
         <div className="text-center py-8 text-muted">
           <p>Brak dostępnych metadanych odpowiedzi</p>
         </div>
-      )}
-    </div>
-  );
+      );
+    }
+
+    // Calculate total chunks used across all messages
+    const totalChunks = messagesWithMetadata.reduce((total, msg) => 
+      total + (msg.metadata?.documentMetadata?.length || 0), 0
+    );
+
+    return (
+      <div className="space-y-4">
+        {/* Summary */}
+        <div className="p-3 rounded-theme border border-accent bg-accent-light">
+          <div className="text-sm text-accent font-medium">
+            Historia kontekstu: {messagesWithMetadata.length} odpowiedzi, {totalChunks} fragmentów dokumentów
+          </div>
+        </div>
+        
+        {messagesWithMetadata.map((message, messageIndex) => (
+          <div key={message.id} className="p-4 rounded-theme border border-accent-light bg-accent-bg shadow-theme">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-accent">Odpowiedź #{messagesWithMetadata.length - messageIndex}</h4>
+              <span className="text-xs text-accent/60">
+                {message.timestamp.toLocaleTimeString()}
+              </span>
+            </div>
+            
+            <div className="space-y-2 text-sm">
+              {message.metadata?.processingTime && (
+                <div>
+                  <span className="text-accent/80">Czas przetwarzania:</span> {message.metadata.processingTime}ms
+                </div>
+              )}
+              
+              {message.metadata?.documentMetadata && message.metadata.documentMetadata.length > 0 && (
+                <div>
+                  <span className="text-accent/80">Użyte dokumenty:</span>
+                  <div className="mt-2 space-y-2">
+                    {message.metadata.documentMetadata.map((doc, docIndex) => (
+                      <div key={`${message.id}-${docIndex}`} className="pl-3 border-l-2 border-accent">
+                        <div className="text-xs text-accent font-medium">{doc.h1}</div>
+                        {doc.h2 && <div className="text-xs text-accent/80">{doc.h2}</div>}
+                        <div className="text-xs text-accent/80">Wynik: {Math.round(doc.relevance_score * 100)}%</div>
+                        {doc.chunk_content && (
+                          <div className="mt-1 text-xs text-accent/80 bg-accent-light/50 p-2 rounded">
+                            {doc.chunk_content}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderTabContent = () => {
     switch (state.activeTab) {

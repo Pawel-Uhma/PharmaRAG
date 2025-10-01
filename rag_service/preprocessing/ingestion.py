@@ -88,6 +88,7 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
     for doc in documents:
         header_docs = header_splitter.split_text(doc.page_content)
         
+        
         # Extract source URL from "Źródło" section
         source_url = ""
         for hd in header_docs:
@@ -115,9 +116,9 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
             
             hd.metadata = meta
 
-            # prepend "<h1>: <h2>" to this section's content
-            prefix = header_prefix(hd.metadata)
-            hd.page_content = f"{prefix}\n\n{hd.page_content}".strip()
+            # Store the original content without prepending the header
+            # The header information is already in the metadata
+            hd.page_content = hd.page_content.strip()
 
         all_section_docs.extend([hd for hd in header_docs if hd.metadata.get("h2") != "Źródło"])
 
@@ -144,13 +145,9 @@ def split_text_by_markdown_headers(documents: list[Document]) -> list[Document]:
                 "parent_h1": sec.metadata.get("h1", ""),
                 "parent_h2": sec.metadata.get("h2", ""),
             }
-            # ensure each subchunk also starts with "<h1>: <h2>"
-            prefix = header_prefix(sc.metadata)
-            # If the prefix is already there (because we split the section's content),
-            # avoid duplicating: check the beginning.
-            content = sc.page_content.lstrip()
-            if not content.startswith(prefix):
-                sc.page_content = f"{prefix}\n\n{content}"
+            # Keep the original content without prepending headers
+            # Header information is already in metadata
+            sc.page_content = sc.page_content.strip()
         final_chunks.extend(subchunks)
 
     print(f"Split {len(documents)} files into {len(all_section_docs)} header sections and {len(final_chunks)} final chunks.")

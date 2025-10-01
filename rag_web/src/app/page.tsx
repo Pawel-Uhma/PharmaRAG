@@ -198,6 +198,7 @@ function HomeContent() {
             state={contextPanel}
             onStateChange={setContextPanel}
             currentMessage={currentMessage}
+            allMessages={messages}
             sources={currentSources}
             onSourceClick={handleSourceInContextPanelClick}
           />
